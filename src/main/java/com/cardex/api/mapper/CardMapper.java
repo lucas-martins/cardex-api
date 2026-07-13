@@ -10,6 +10,11 @@ import org.mapstruct.Mapping;
 public interface CardMapper {
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "name", ignore = true)
+    @Mapping(target = "collectionName", ignore = true)
+    @Mapping(target = "cardNumber", ignore = true)
+    @Mapping(target = "rarity", ignore = true)
+    @Mapping(target = "imageUrl", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     CardEntity toEntity(CreateCardRequest request);

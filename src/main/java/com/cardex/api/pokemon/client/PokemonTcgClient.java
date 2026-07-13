@@ -1,6 +1,8 @@
 package com.cardex.api.pokemon.client;
 
+import com.cardex.api.exception.PokemonCardNotFoundException;
 import com.cardex.api.pokemon.dto.PokemonCardApiResponse;
+import com.cardex.api.pokemon.dto.PokemonCardApiSingleResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -9,7 +11,9 @@ import org.springframework.web.client.RestClient;
 @RequiredArgsConstructor
 public class PokemonTcgClient {
 
-    private static final int DEFAULT_PAGE_SIZE = 20;
+    private static final int DEFAULT_PAGE_SIZE = 10;
+    private static final String SELECTED_FIELDS =
+            "id,name,number,rarity,set,images";
 
     private final RestClient pokemonTcgRestClient;
 
@@ -18,14 +22,27 @@ public class PokemonTcgClient {
                 .get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/cards")
-                        .queryParam("q", "name:" + name)
+                        .queryParam("q", "name:" + name.trim())
                         .queryParam("pageSize", DEFAULT_PAGE_SIZE)
-                        .queryParam(
-                                "select",
-                                "id,name,number,rarity,set,images"
-                        )
                         .build())
                 .retrieve()
                 .body(PokemonCardApiResponse.class);
+    }
+
+    public PokemonCardApiSingleResponse findById(String externalId) {
+        return pokemonTcgRestClient
+                .get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/cards/{id}")
+                        .queryParam("select", SELECTED_FIELDS)
+                        .build(externalId))
+                .retrieve()
+                .onStatus(
+                        status -> status.value() == 404,
+                        (request, response) -> {
+                            throw new PokemonCardNotFoundException(externalId);
+                        }
+                )
+                .body(PokemonCardApiSingleResponse.class);
     }
 }
