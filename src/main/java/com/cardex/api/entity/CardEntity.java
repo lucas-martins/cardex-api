@@ -16,6 +16,9 @@ import lombok.Setter;
 @AllArgsConstructor
 public class CardEntity extends BaseEntity {
 
+    @Column(name = "external_id", length = 50)
+    private String externalId;
+
     @Column(nullable = false, length = 150)
     private String name;
 
@@ -30,6 +33,12 @@ public class CardEntity extends BaseEntity {
 
     @Column(nullable = false)
     private Integer quantity;
+
+    @Column(length = 30)
+    private String language;
+
+    @Column(name = "card_condition", length = 30)
+    private String condition;
 
     @Column(name = "image_url", length = 1000)
     private String imageUrl;

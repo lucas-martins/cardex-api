@@ -15,3 +15,7 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
+pokemon-tcg:
+  base-url: https://api.pokemontcg.io/v2
+  api-key: ${POKEMON_TCG_API_KEY}
