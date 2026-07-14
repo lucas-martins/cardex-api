@@ -1,8 +1,8 @@
 package com.cardex.api.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import com.cardex.api.enumeration.CardCondition;
+import com.cardex.api.enumeration.CardLanguage;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -34,11 +34,13 @@ public class CardEntity extends BaseEntity {
     @Column(nullable = false)
     private Integer quantity;
 
+    @Enumerated(EnumType.STRING)
     @Column(length = 30)
-    private String language;
+    private CardLanguage language;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "card_condition", length = 30)
-    private String condition;
+    private CardCondition condition;
 
     @Column(name = "image_url", length = 1000)
     private String imageUrl;

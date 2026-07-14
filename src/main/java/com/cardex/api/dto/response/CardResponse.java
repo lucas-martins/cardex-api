@@ -1,5 +1,7 @@
 package com.cardex.api.dto.response;
 
+import com.cardex.api.enumeration.CardCondition;
+import com.cardex.api.enumeration.CardLanguage;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -16,8 +18,8 @@ public class CardResponse {
     private String cardNumber;
     private String rarity;
     private Integer quantity;
-    private String language;
-    private String condition;
+    private CardLanguage language;
+    private CardCondition condition;
     private String imageUrl;
     private String notes;
     private LocalDateTime createdAt;

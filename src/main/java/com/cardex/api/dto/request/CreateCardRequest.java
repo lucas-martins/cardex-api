@@ -1,5 +1,7 @@
 package com.cardex.api.dto.request;
 
+import com.cardex.api.enumeration.CardCondition;
+import com.cardex.api.enumeration.CardLanguage;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -19,11 +21,11 @@ public class CreateCardRequest {
     @Min(value = 1, message = "Quantity must be at least 1")
     private Integer quantity;
 
-    @Size(max = 30, message = "Language must not exceed 30 characters")
-    private String language;
+    @NotNull(message = "Language is required")
+    private CardLanguage language;
 
-    @Size(max = 30, message = "Condition must not exceed 30 characters")
-    private String condition;
+    @NotNull(message = "Condition is required")
+    private CardCondition condition;
 
     @Size(max = 1000, message = "Notes must not exceed 1000 characters")
     private String notes;
