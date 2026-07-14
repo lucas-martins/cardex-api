@@ -9,7 +9,19 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "cards")
+@Table(
+        name = "cards",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_cards_external_language_condition",
+                        columnNames = {
+                                "external_id",
+                                "language",
+                                "card_condition"
+                        }
+                )
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor

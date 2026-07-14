@@ -31,6 +31,31 @@ public class CardServiceImpl implements CardService {
     @Override
     @Transactional
     public CardResponse create(CreateCardRequest request) {
+        return cardRepository
+                .findByExternalIdAndLanguageAndCondition(
+                        request.getExternalId(),
+                        request.getLanguage(),
+                        request.getCondition()
+                )
+                .map(existingCard -> increaseQuantity(existingCard, request))
+                .orElseGet(() -> createNewCard(request));
+    }
+
+    private CardResponse increaseQuantity(
+            CardEntity existingCard,
+            CreateCardRequest request
+    ) {
+        int updatedQuantity =
+                existingCard.getQuantity() + request.getQuantity();
+
+        existingCard.setQuantity(updatedQuantity);
+
+        CardEntity updatedCard = cardRepository.save(existingCard);
+
+        return cardMapper.toResponse(updatedCard);
+    }
+
+    private CardResponse createNewCard(CreateCardRequest request) {
         PokemonCardApiSingleResponse apiResponse =
                 pokemonTcgClient.findById(request.getExternalId());
 
