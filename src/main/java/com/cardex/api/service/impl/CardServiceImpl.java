@@ -3,6 +3,7 @@ package com.cardex.api.service.impl;
 import java.util.List;
 
 import com.cardex.api.dto.request.CreateCardRequest;
+import com.cardex.api.dto.request.UpdateCardQuantityRequest;
 import com.cardex.api.dto.request.UpdateCardRequest;
 import com.cardex.api.dto.response.CardResponse;
 import com.cardex.api.entity.CardEntity;
@@ -102,5 +103,21 @@ public class CardServiceImpl implements CardService {
                 .orElseThrow(() -> new CardNotFoundException(id));
 
         cardRepository.delete(cardEntity);
+    }
+
+    @Override
+    @Transactional
+    public CardResponse updateQuantity(
+            Long id,
+            UpdateCardQuantityRequest request
+    ) {
+        CardEntity cardEntity = cardRepository.findById(id)
+                .orElseThrow(() -> new CardNotFoundException(id));
+
+        cardEntity.setQuantity(request.quantity());
+
+        CardEntity updatedCard = cardRepository.save(cardEntity);
+
+        return cardMapper.toResponse(updatedCard);
     }
 }

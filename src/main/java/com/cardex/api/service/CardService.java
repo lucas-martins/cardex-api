@@ -1,6 +1,7 @@
 package com.cardex.api.service;
 
 import com.cardex.api.dto.request.CreateCardRequest;
+import com.cardex.api.dto.request.UpdateCardQuantityRequest;
 import com.cardex.api.dto.request.UpdateCardRequest;
 import com.cardex.api.dto.response.CardResponse;
 
@@ -17,4 +18,6 @@ public interface CardService {
     CardResponse update(Long id, UpdateCardRequest request);
 
     void delete(Long id);
+
+    CardResponse updateQuantity(Long id, UpdateCardQuantityRequest request);
 }
