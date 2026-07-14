@@ -1,5 +1,7 @@
 package com.cardex.api.service.impl;
 
+import java.util.List;
+
 import com.cardex.api.dto.request.CreateCardRequest;
 import com.cardex.api.dto.response.CardResponse;
 import com.cardex.api.entity.CardEntity;
@@ -13,6 +15,7 @@ import com.cardex.api.service.CardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Sort;
 
 @Service
 @RequiredArgsConstructor
@@ -53,5 +56,18 @@ public class CardServiceImpl implements CardService {
         CardEntity savedCard = cardRepository.save(cardEntity);
 
         return cardMapper.toResponse(savedCard);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CardResponse> findAll() {
+        Sort sort = Sort.by(
+                Sort.Order.asc("name").ignoreCase()
+        );
+
+        return cardRepository.findAll(sort)
+                .stream()
+                .map(cardMapper::toResponse)
+                .toList();
     }
 }
