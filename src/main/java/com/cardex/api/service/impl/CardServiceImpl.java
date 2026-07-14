@@ -7,6 +7,8 @@ import com.cardex.api.dto.request.UpdateCardQuantityRequest;
 import com.cardex.api.dto.request.UpdateCardRequest;
 import com.cardex.api.dto.response.CardResponse;
 import com.cardex.api.entity.CardEntity;
+import com.cardex.api.enumeration.CardCondition;
+import com.cardex.api.enumeration.CardLanguage;
 import com.cardex.api.exception.PokemonCardNotFoundException;
 import com.cardex.api.exception.CardNotFoundException;
 import com.cardex.api.mapper.CardMapper;
@@ -15,7 +17,12 @@ import com.cardex.api.pokemon.dto.PokemonCardApiData;
 import com.cardex.api.pokemon.dto.PokemonCardApiSingleResponse;
 import com.cardex.api.repository.CardRepository;
 import com.cardex.api.service.CardService;
+import com.cardex.api.specification.CardSpecification;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Sort;
@@ -88,15 +95,28 @@ public class CardServiceImpl implements CardService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<CardResponse> findAll() {
+    public Page<CardResponse> findAll(
+            int page,
+            int size,
+            String name,
+            CardLanguage language,
+            CardCondition condition
+    ) {
         Sort sort = Sort.by(
                 Sort.Order.asc("name").ignoreCase()
         );
 
-        return cardRepository.findAll(sort)
-                .stream()
-                .map(cardMapper::toResponse)
-                .toList();
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Specification<CardEntity> specification =
+                Specification
+                        .where(CardSpecification.nameContains(name))
+                        .and(CardSpecification.languageEquals(language))
+                        .and(CardSpecification.conditionEquals(condition));
+
+        return cardRepository
+                .findAll(specification, pageable)
+                .map(cardMapper::toResponse);
     }
 
     @Override

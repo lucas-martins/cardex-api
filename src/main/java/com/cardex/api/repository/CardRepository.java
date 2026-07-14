@@ -4,12 +4,15 @@ import com.cardex.api.entity.CardEntity;
 import com.cardex.api.enumeration.CardCondition;
 import com.cardex.api.enumeration.CardLanguage;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
 @Repository
-public interface CardRepository extends JpaRepository<CardEntity, Long> {
+public interface CardRepository extends
+        JpaRepository<CardEntity, Long>,
+        JpaSpecificationExecutor<CardEntity> {
 
     Optional<CardEntity> findByExternalIdAndLanguageAndCondition(
             String externalId,
