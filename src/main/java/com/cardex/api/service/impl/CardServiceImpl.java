@@ -3,9 +3,11 @@ package com.cardex.api.service.impl;
 import java.util.List;
 
 import com.cardex.api.dto.request.CreateCardRequest;
+import com.cardex.api.dto.request.UpdateCardRequest;
 import com.cardex.api.dto.response.CardResponse;
 import com.cardex.api.entity.CardEntity;
 import com.cardex.api.exception.PokemonCardNotFoundException;
+import com.cardex.api.exception.CardNotFoundException;
 import com.cardex.api.mapper.CardMapper;
 import com.cardex.api.pokemon.client.PokemonTcgClient;
 import com.cardex.api.pokemon.dto.PokemonCardApiData;
@@ -69,5 +71,36 @@ public class CardServiceImpl implements CardService {
                 .stream()
                 .map(cardMapper::toResponse)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CardResponse findById(Long id) {
+        CardEntity cardEntity = cardRepository.findById(id)
+                .orElseThrow(() -> new CardNotFoundException(id));
+
+        return cardMapper.toResponse(cardEntity);
+    }
+
+    @Override
+    @Transactional
+    public CardResponse update(Long id, UpdateCardRequest request) {
+        CardEntity cardEntity = cardRepository.findById(id)
+                .orElseThrow(() -> new CardNotFoundException(id));
+
+        cardMapper.updateEntity(request, cardEntity);
+
+        CardEntity updatedCard = cardRepository.save(cardEntity);
+
+        return cardMapper.toResponse(updatedCard);
+    }
+
+    @Override
+    @Transactional
+    public void delete(Long id) {
+        CardEntity cardEntity = cardRepository.findById(id)
+                .orElseThrow(() -> new CardNotFoundException(id));
+
+        cardRepository.delete(cardEntity);
     }
 }

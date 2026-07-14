@@ -3,8 +3,10 @@ package com.cardex.api.mapper;
 import com.cardex.api.dto.request.CreateCardRequest;
 import com.cardex.api.dto.response.CardResponse;
 import com.cardex.api.entity.CardEntity;
+import com.cardex.api.dto.request.UpdateCardRequest;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "spring")
 public interface CardMapper {
@@ -20,4 +22,9 @@ public interface CardMapper {
     CardEntity toEntity(CreateCardRequest request);
 
     CardResponse toResponse(CardEntity entity);
+
+    void updateEntity(
+            UpdateCardRequest request,
+            @MappingTarget CardEntity cardEntity
+    );
 }
