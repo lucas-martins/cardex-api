@@ -178,4 +178,24 @@ public class GlobalExceptionHandler {
                 .status(status)
                 .body(response);
     }
+
+    @ExceptionHandler(PokemonTcgApiUnavailableException.class)
+    public ResponseEntity<ApiErrorResponse> handlePokemonTcgApiUnavailable(
+            PokemonTcgApiUnavailableException exception,
+            HttpServletRequest request
+    ) {
+        HttpStatus status = HttpStatus.SERVICE_UNAVAILABLE;
+
+        ApiErrorResponse response = new ApiErrorResponse(
+                status.value(),
+                status.getReasonPhrase(),
+                exception.getMessage(),
+                request.getRequestURI(),
+                LocalDateTime.now()
+        );
+
+        return ResponseEntity
+                .status(status)
+                .body(response);
+    }
 }
