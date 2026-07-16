@@ -1,7 +1,6 @@
 package com.cardex.api.service.impl;
 
 import com.cardex.api.dto.request.CreateCardRequest;
-import com.cardex.api.dto.request.UpdateCardQuantityRequest;
 import com.cardex.api.dto.response.CardResponse;
 import com.cardex.api.entity.CardEntity;
 import com.cardex.api.enumeration.CardCondition;

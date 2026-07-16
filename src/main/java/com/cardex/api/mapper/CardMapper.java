@@ -23,6 +23,15 @@ public interface CardMapper {
 
     CardResponse toResponse(CardEntity entity);
 
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "externalId", ignore = true)
+    @Mapping(target = "name", ignore = true)
+    @Mapping(target = "collectionName", ignore = true)
+    @Mapping(target = "cardNumber", ignore = true)
+    @Mapping(target = "rarity", ignore = true)
+    @Mapping(target = "imageUrl", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
     void updateEntity(
             UpdateCardRequest request,
             @MappingTarget CardEntity cardEntity

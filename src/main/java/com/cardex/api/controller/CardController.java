@@ -1,7 +1,6 @@
 package com.cardex.api.controller;
 
 import com.cardex.api.dto.request.CreateCardRequest;
-import com.cardex.api.dto.request.UpdateCardQuantityRequest;
 import com.cardex.api.dto.request.UpdateCardRequest;
 import com.cardex.api.dto.response.CardResponse;
 import com.cardex.api.enumeration.CardCondition;
@@ -89,15 +88,5 @@ public class CardController {
         cardService.delete(id);
 
         return ResponseEntity.noContent().build();
-    }
-
-    @PatchMapping("/{id}/quantity")
-    public ResponseEntity<CardResponse> updateQuantity(
-            @PathVariable Long id,
-            @Valid @RequestBody UpdateCardQuantityRequest request
-    ) {
-        return ResponseEntity.ok(
-                cardService.updateQuantity(id, request)
-        );
     }
 }
