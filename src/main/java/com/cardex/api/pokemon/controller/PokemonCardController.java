@@ -1,7 +1,6 @@
 package com.cardex.api.pokemon.controller;
 
 import com.cardex.api.pokemon.response.PokemonCardSearchPageResponse;
-import com.cardex.api.pokemon.response.PokemonCardSearchResponse;
 import com.cardex.api.pokemon.service.PokemonCardService;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
