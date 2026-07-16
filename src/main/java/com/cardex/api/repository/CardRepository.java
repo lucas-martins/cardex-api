@@ -26,4 +26,19 @@ public interface CardRepository extends
         from CardEntity card
         """)
     Long sumTotalQuantity();
+
+    @Query("""
+        select count(distinct card.language)
+        from CardEntity card
+        """)
+    long countDifferentLanguages();
+
+    @Query("""
+        select count(distinct card.collectionName)
+        from CardEntity card
+        where card.collectionName is not null
+        """)
+    long countDifferentCollections();
+
+    Optional<CardEntity> findFirstByOrderByQuantityDescCreatedAtDesc();
 }

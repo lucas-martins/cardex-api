@@ -4,6 +4,7 @@ import com.cardex.api.dto.request.CreateCardRequest;
 import com.cardex.api.dto.request.UpdateCardRequest;
 import com.cardex.api.dto.response.CardResponse;
 import com.cardex.api.dto.response.CollectionSummaryResponse;
+import com.cardex.api.dto.response.MostOwnedCardResponse;
 import com.cardex.api.entity.CardEntity;
 import com.cardex.api.enumeration.CardCondition;
 import com.cardex.api.enumeration.CardLanguage;
@@ -168,9 +169,26 @@ public class CardServiceImpl implements CardService {
         Long totalQuantity = cardRepository.sumTotalQuantity();
         long totalCards = totalQuantity != null ? totalQuantity : 0L;
 
+        long differentLanguages =
+                cardRepository.countDifferentLanguages();
+
+        long differentCollections =
+                cardRepository.countDifferentCollections();
+
+        MostOwnedCardResponse mostOwnedCard = cardRepository
+                .findFirstByOrderByQuantityDescCreatedAtDesc()
+                .map(card -> new MostOwnedCardResponse(
+                        card.getName(),
+                        card.getQuantity()
+                ))
+                .orElse(null);
+
         return new CollectionSummaryResponse(
                 uniqueCards,
-                totalCards
+                totalCards,
+                differentLanguages,
+                differentCollections,
+                mostOwnedCard
         );
     }
 
