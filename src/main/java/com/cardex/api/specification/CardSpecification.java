@@ -52,4 +52,17 @@ public final class CardSpecification {
             );
         };
     }
+
+    public static Specification<CardEntity> favoriteEquals(Boolean favorite) {
+        return (root, query, criteriaBuilder) -> {
+            if (favorite == null) {
+                return criteriaBuilder.conjunction();
+            }
+
+            return criteriaBuilder.equal(
+                    root.get("favorite"),
+                    favorite
+            );
+        };
+    }
 }

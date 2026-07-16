@@ -1,6 +1,7 @@
 package com.cardex.api.controller;
 
 import com.cardex.api.dto.request.CreateCardRequest;
+import com.cardex.api.dto.request.UpdateCardFavoriteRequest;
 import com.cardex.api.dto.request.UpdateCardRequest;
 import com.cardex.api.dto.response.CardResponse;
 import com.cardex.api.dto.response.CollectionSummaryResponse;
@@ -56,6 +57,9 @@ public class CardController {
             @RequestParam(required = false)
             CardCondition condition,
 
+            @RequestParam(required = false)
+            Boolean favorite,
+
             @RequestParam(defaultValue = "name,asc")
             String sort
     ) {
@@ -66,6 +70,7 @@ public class CardController {
                         name,
                         language,
                         condition,
+                        favorite,
                         sort
                 )
         );
@@ -99,6 +104,16 @@ public class CardController {
     public ResponseEntity<CollectionSummaryResponse> getCollectionSummary() {
         return ResponseEntity.ok(
                 cardService.getCollectionSummary()
+        );
+    }
+
+    @PatchMapping("/{id}/favorite")
+    public ResponseEntity<CardResponse> updateFavorite(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateCardFavoriteRequest request
+    ) {
+        return ResponseEntity.ok(
+                cardService.updateFavorite(id, request)
         );
     }
 }

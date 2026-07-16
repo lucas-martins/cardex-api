@@ -32,6 +32,7 @@ public interface CardMapper {
     @Mapping(target = "imageUrl", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "favorite", ignore = true)
     void updateEntity(
             UpdateCardRequest request,
             @MappingTarget CardEntity cardEntity

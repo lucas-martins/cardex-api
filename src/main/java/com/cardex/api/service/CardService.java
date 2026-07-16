@@ -1,6 +1,7 @@
 package com.cardex.api.service;
 
 import com.cardex.api.dto.request.CreateCardRequest;
+import com.cardex.api.dto.request.UpdateCardFavoriteRequest;
 import com.cardex.api.dto.request.UpdateCardRequest;
 import com.cardex.api.dto.response.CardResponse;
 import com.cardex.api.dto.response.CollectionSummaryResponse;
@@ -18,6 +19,7 @@ public interface CardService {
             String name,
             CardLanguage language,
             CardCondition condition,
+            Boolean favorite,
             String sort
     );
 
@@ -28,4 +30,9 @@ public interface CardService {
     void delete(Long id);
 
     CollectionSummaryResponse getCollectionSummary();
+
+    CardResponse updateFavorite(
+            Long id,
+            UpdateCardFavoriteRequest request
+    );
 }

@@ -59,4 +59,7 @@ public class CardEntity extends BaseEntity {
 
     @Column(length = 1000)
     private String notes;
+
+    @Column(nullable = false)
+    private boolean favorite = false;
 }

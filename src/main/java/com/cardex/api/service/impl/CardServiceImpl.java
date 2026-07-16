@@ -1,6 +1,7 @@
 package com.cardex.api.service.impl;
 
 import com.cardex.api.dto.request.CreateCardRequest;
+import com.cardex.api.dto.request.UpdateCardFavoriteRequest;
 import com.cardex.api.dto.request.UpdateCardRequest;
 import com.cardex.api.dto.response.CardResponse;
 import com.cardex.api.dto.response.CollectionSummaryResponse;
@@ -113,6 +114,7 @@ public class CardServiceImpl implements CardService {
             String name,
             CardLanguage language,
             CardCondition condition,
+            Boolean favorite,
             String sort
     ) {
         Sort cardSort = buildSort(sort);
@@ -123,7 +125,8 @@ public class CardServiceImpl implements CardService {
                 Specification
                         .where(CardSpecification.nameContains(name))
                         .and(CardSpecification.languageEquals(language))
-                        .and(CardSpecification.conditionEquals(condition));
+                        .and(CardSpecification.conditionEquals(condition))
+                        .and(CardSpecification.favoriteEquals(favorite));
 
         return cardRepository
                 .findAll(specification, pageable)
@@ -221,5 +224,21 @@ public class CardServiceImpl implements CardService {
         }
 
         return Sort.by(order);
+    }
+
+    @Override
+    @Transactional
+    public CardResponse updateFavorite(
+            Long id,
+            UpdateCardFavoriteRequest request
+    ) {
+        CardEntity cardEntity = cardRepository.findById(id)
+                .orElseThrow(() -> new CardNotFoundException(id));
+
+        cardEntity.setFavorite(request.favorite());
+
+        CardEntity updatedCard = cardRepository.save(cardEntity);
+
+        return cardMapper.toResponse(updatedCard);
     }
 }
