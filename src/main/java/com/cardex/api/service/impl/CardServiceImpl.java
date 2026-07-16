@@ -25,6 +25,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Sort;
 
+import java.util.Set;
+
 @Service
 @RequiredArgsConstructor
 public class CardServiceImpl implements CardService {
@@ -32,6 +34,17 @@ public class CardServiceImpl implements CardService {
     private final CardRepository cardRepository;
     private final CardMapper cardMapper;
     private final PokemonTcgClient pokemonTcgClient;
+    private static final Set<String> ALLOWED_SORT_PROPERTIES = Set.of(
+            "name",
+            "collectionName",
+            "cardNumber",
+            "rarity",
+            "quantity",
+            "language",
+            "condition",
+            "createdAt",
+            "updatedAt"
+    );
 
     @Override
     @Transactional
@@ -98,13 +111,12 @@ public class CardServiceImpl implements CardService {
             int size,
             String name,
             CardLanguage language,
-            CardCondition condition
+            CardCondition condition,
+            String sort
     ) {
-        Sort sort = Sort.by(
-                Sort.Order.asc("name").ignoreCase()
-        );
+        Sort cardSort = buildSort(sort);
 
-        Pageable pageable = PageRequest.of(page, size, sort);
+        Pageable pageable = PageRequest.of(page, size, cardSort);
 
         Specification<CardEntity> specification =
                 Specification
@@ -160,5 +172,36 @@ public class CardServiceImpl implements CardService {
                 uniqueCards,
                 totalCards
         );
+    }
+
+    private Sort buildSort(String sort) {
+        if (sort == null || sort.isBlank()) {
+            return Sort.by(
+                    Sort.Order.asc("name").ignoreCase()
+            );
+        }
+
+        String[] sortParts = sort.split(",");
+
+        String property = sortParts[0].trim();
+
+        if (!ALLOWED_SORT_PROPERTIES.contains(property)) {
+            property = "name";
+        }
+
+        Sort.Direction direction =
+                sortParts.length > 1
+                        ? Sort.Direction.fromOptionalString(
+                        sortParts[1].trim()
+                ).orElse(Sort.Direction.ASC)
+                        : Sort.Direction.ASC;
+
+        Sort.Order order = new Sort.Order(direction, property);
+
+        if ("name".equals(property)) {
+            order = order.ignoreCase();
+        }
+
+        return Sort.by(order);
     }
 }

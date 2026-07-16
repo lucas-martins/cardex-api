@@ -17,7 +17,8 @@ public interface CardService {
             int size,
             String name,
             CardLanguage language,
-            CardCondition condition
+            CardCondition condition,
+            String sort
     );
 
     CardResponse findById(Long id);

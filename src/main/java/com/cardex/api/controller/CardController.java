@@ -54,7 +54,10 @@ public class CardController {
             CardLanguage language,
 
             @RequestParam(required = false)
-            CardCondition condition
+            CardCondition condition,
+
+            @RequestParam(defaultValue = "name,asc")
+            String sort
     ) {
         return ResponseEntity.ok(
                 cardService.findAll(
@@ -62,7 +65,8 @@ public class CardController {
                         size,
                         name,
                         language,
-                        condition
+                        condition,
+                        sort
                 )
         );
     }
