@@ -3,6 +3,7 @@ package com.cardex.api.service.impl;
 import com.cardex.api.dto.request.CreateCardRequest;
 import com.cardex.api.dto.request.UpdateCardRequest;
 import com.cardex.api.dto.response.CardResponse;
+import com.cardex.api.dto.response.CollectionSummaryResponse;
 import com.cardex.api.entity.CardEntity;
 import com.cardex.api.enumeration.CardCondition;
 import com.cardex.api.enumeration.CardLanguage;
@@ -145,5 +146,19 @@ public class CardServiceImpl implements CardService {
                 .orElseThrow(() -> new CardNotFoundException(id));
 
         cardRepository.delete(cardEntity);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CollectionSummaryResponse getCollectionSummary() {
+        long uniqueCards = cardRepository.count();
+
+        Long totalQuantity = cardRepository.sumTotalQuantity();
+        long totalCards = totalQuantity != null ? totalQuantity : 0L;
+
+        return new CollectionSummaryResponse(
+                uniqueCards,
+                totalCards
+        );
     }
 }

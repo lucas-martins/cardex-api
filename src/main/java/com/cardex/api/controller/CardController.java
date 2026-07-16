@@ -3,6 +3,7 @@ package com.cardex.api.controller;
 import com.cardex.api.dto.request.CreateCardRequest;
 import com.cardex.api.dto.request.UpdateCardRequest;
 import com.cardex.api.dto.response.CardResponse;
+import com.cardex.api.dto.response.CollectionSummaryResponse;
 import com.cardex.api.enumeration.CardCondition;
 import com.cardex.api.enumeration.CardLanguage;
 import com.cardex.api.service.CardService;
@@ -88,5 +89,12 @@ public class CardController {
         cardService.delete(id);
 
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/summary")
+    public ResponseEntity<CollectionSummaryResponse> getCollectionSummary() {
+        return ResponseEntity.ok(
+                cardService.getCollectionSummary()
+        );
     }
 }
