@@ -4,6 +4,7 @@ import com.cardex.api.dto.request.CreateCardRequest;
 import com.cardex.api.dto.request.UpdateCardFavoriteRequest;
 import com.cardex.api.dto.request.UpdateCardRequest;
 import com.cardex.api.dto.response.CardResponse;
+import com.cardex.api.dto.response.CollectionAnalyticsResponse;
 import com.cardex.api.dto.response.CollectionSummaryResponse;
 import com.cardex.api.enumeration.CardCondition;
 import com.cardex.api.enumeration.CardLanguage;
@@ -35,4 +36,6 @@ public interface CardService {
             Long id,
             UpdateCardFavoriteRequest request
     );
+
+    CollectionAnalyticsResponse getCollectionAnalytics();
 }

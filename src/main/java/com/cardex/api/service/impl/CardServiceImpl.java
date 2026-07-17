@@ -3,9 +3,7 @@ package com.cardex.api.service.impl;
 import com.cardex.api.dto.request.CreateCardRequest;
 import com.cardex.api.dto.request.UpdateCardFavoriteRequest;
 import com.cardex.api.dto.request.UpdateCardRequest;
-import com.cardex.api.dto.response.CardResponse;
-import com.cardex.api.dto.response.CollectionSummaryResponse;
-import com.cardex.api.dto.response.MostOwnedCardResponse;
+import com.cardex.api.dto.response.*;
 import com.cardex.api.entity.CardEntity;
 import com.cardex.api.enumeration.CardCondition;
 import com.cardex.api.enumeration.CardLanguage;
@@ -27,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Sort;
 
+import java.util.List;
 import java.util.Set;
 
 @Service
@@ -240,5 +239,56 @@ public class CardServiceImpl implements CardService {
         CardEntity updatedCard = cardRepository.save(cardEntity);
 
         return cardMapper.toResponse(updatedCard);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CollectionAnalyticsResponse getCollectionAnalytics() {
+        List<CollectionAnalyticsItemResponse> collections =
+                cardRepository
+                        .findQuantityGroupedByCollection()
+                        .stream()
+                        .map(item -> new CollectionAnalyticsItemResponse(
+                                item.getName(),
+                                item.getQuantity()
+                        ))
+                        .toList();
+
+        List<CollectionAnalyticsItemResponse> languages =
+                cardRepository
+                        .findQuantityGroupedByLanguage()
+                        .stream()
+                        .map(item -> new CollectionAnalyticsItemResponse(
+                                item.getLanguage().name(),
+                                item.getQuantity()
+                        ))
+                        .toList();
+
+        List<CollectionAnalyticsItemResponse> conditions =
+                cardRepository
+                        .findQuantityGroupedByCondition()
+                        .stream()
+                        .map(item -> new CollectionAnalyticsItemResponse(
+                                item.getCondition().name(),
+                                item.getQuantity()
+                        ))
+                        .toList();
+
+        List<CollectionAnalyticsItemResponse> rarities =
+                cardRepository
+                        .findQuantityGroupedByRarity()
+                        .stream()
+                        .map(item -> new CollectionAnalyticsItemResponse(
+                                item.getRarity(),
+                                item.getQuantity()
+                        ))
+                        .toList();
+
+        return new CollectionAnalyticsResponse(
+                collections,
+                languages,
+                conditions,
+                rarities
+        );
     }
 }

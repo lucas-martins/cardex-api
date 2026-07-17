@@ -4,6 +4,7 @@ import com.cardex.api.dto.request.CreateCardRequest;
 import com.cardex.api.dto.request.UpdateCardFavoriteRequest;
 import com.cardex.api.dto.request.UpdateCardRequest;
 import com.cardex.api.dto.response.CardResponse;
+import com.cardex.api.dto.response.CollectionAnalyticsResponse;
 import com.cardex.api.dto.response.CollectionSummaryResponse;
 import com.cardex.api.enumeration.CardCondition;
 import com.cardex.api.enumeration.CardLanguage;
@@ -114,6 +115,14 @@ public class CardController {
     ) {
         return ResponseEntity.ok(
                 cardService.updateFavorite(id, request)
+        );
+    }
+
+    @GetMapping("/analytics")
+    public ResponseEntity<CollectionAnalyticsResponse>
+    getCollectionAnalytics() {
+        return ResponseEntity.ok(
+                cardService.getCollectionAnalytics()
         );
     }
 }
