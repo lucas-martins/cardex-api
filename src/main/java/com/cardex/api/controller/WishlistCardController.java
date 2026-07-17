@@ -1,5 +1,6 @@
 package com.cardex.api.controller;
 
+import com.cardex.api.dto.response.CardResponse;
 import com.cardex.api.dto.wishlist.WishlistCardRequest;
 import com.cardex.api.dto.wishlist.WishlistCardResponse;
 import com.cardex.api.service.WishlistCardService;
