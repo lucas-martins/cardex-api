@@ -123,4 +123,10 @@ public interface CardRepository extends
     List<CollectionProgressProjection> findCollectionProgress();
 
     List<CardEntity> findByCollectionId(String collectionId);
+
+    boolean existsByExternalIdAndLanguageAndCondition(
+            String externalId,
+            CardLanguage language,
+            CardCondition condition
+    );
 }
