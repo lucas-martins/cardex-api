@@ -403,4 +403,30 @@ public class CardServiceImpl implements CardService {
                 currentValue >= targetValue
         );
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CollectionProgressResponse> getCollectionProgress() {
+        return cardRepository
+                .findCollectionProgress()
+                .stream()
+                .map(item -> {
+                    long ownedCards = item.getOwnedCards();
+                    long totalCards = item.getCollectionTotal();
+
+                    double completionPercentage =
+                            totalCards > 0
+                                    ? (ownedCards * 100.0) / totalCards
+                                    : 0.0;
+
+                    return new CollectionProgressResponse(
+                            item.getCollectionId(),
+                            item.getCollectionName(),
+                            ownedCards,
+                            totalCards,
+                            Math.round(completionPercentage * 100.0) / 100.0
+                    );
+                })
+                .toList();
+    }
 }

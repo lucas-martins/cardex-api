@@ -3,10 +3,7 @@ package com.cardex.api.controller;
 import com.cardex.api.dto.request.CreateCardRequest;
 import com.cardex.api.dto.request.UpdateCardFavoriteRequest;
 import com.cardex.api.dto.request.UpdateCardRequest;
-import com.cardex.api.dto.response.CardResponse;
-import com.cardex.api.dto.response.CollectionAnalyticsResponse;
-import com.cardex.api.dto.response.CollectionGoalsResponse;
-import com.cardex.api.dto.response.CollectionSummaryResponse;
+import com.cardex.api.dto.response.*;
 import com.cardex.api.enumeration.CardCondition;
 import com.cardex.api.enumeration.CardLanguage;
 import com.cardex.api.service.CardService;
@@ -19,6 +16,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/cards")
@@ -131,6 +130,14 @@ public class CardController {
     public ResponseEntity<CollectionGoalsResponse> getCollectionGoals() {
         return ResponseEntity.ok(
                 cardService.getCollectionGoals()
+        );
+    }
+
+    @GetMapping("/collection-progress")
+    public ResponseEntity<List<CollectionProgressResponse>>
+    getCollectionProgress() {
+        return ResponseEntity.ok(
+                cardService.getCollectionProgress()
         );
     }
 }

@@ -3,10 +3,7 @@ package com.cardex.api.repository;
 import com.cardex.api.entity.CardEntity;
 import com.cardex.api.enumeration.CardCondition;
 import com.cardex.api.enumeration.CardLanguage;
-import com.cardex.api.repository.projection.CollectionQuantityProjection;
-import com.cardex.api.repository.projection.ConditionQuantityProjection;
-import com.cardex.api.repository.projection.LanguageQuantityProjection;
-import com.cardex.api.repository.projection.RarityQuantityProjection;
+import com.cardex.api.repository.projection.*;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -106,4 +103,22 @@ public interface CardRepository extends
       )
     """)
     long countRareCards();
+
+    @Query("""
+    select
+        card.collectionId as collectionId,
+        card.collectionName as collectionName,
+        card.collectionTotal as collectionTotal,
+        count(distinct card.externalId) as ownedCards
+    from CardEntity card
+    where card.collectionId is not null
+      and card.collectionTotal is not null
+    group by
+        card.collectionId,
+        card.collectionName,
+        card.collectionTotal
+    order by count(distinct card.externalId) desc,
+             card.collectionName asc
+    """)
+    List<CollectionProgressProjection> findCollectionProgress();
 }
