@@ -62,4 +62,10 @@ public class CardEntity extends BaseEntity {
 
     @Column(nullable = false)
     private boolean favorite = false;
+
+    @Column(name = "collection_id", length = 50)
+    private String collectionId;
+
+    @Column(name = "collection_total")
+    private Integer collectionTotal;
 }

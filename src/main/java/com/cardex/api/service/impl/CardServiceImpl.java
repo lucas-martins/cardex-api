@@ -87,11 +87,15 @@ public class CardServiceImpl implements CardService {
         CardEntity cardEntity = cardMapper.toEntity(request);
 
         cardEntity.setName(pokemonCard.name());
-        cardEntity.setCollectionName(
-                pokemonCard.set() != null
-                        ? pokemonCard.set().name()
-                        : null
-        );
+        if (pokemonCard.set() != null) {
+            cardEntity.setCollectionId(pokemonCard.set().id());
+            cardEntity.setCollectionName(pokemonCard.set().name());
+            cardEntity.setCollectionTotal(pokemonCard.set().total());
+        } else {
+            cardEntity.setCollectionId(null);
+            cardEntity.setCollectionName(null);
+            cardEntity.setCollectionTotal(null);
+        }
         cardEntity.setCardNumber(pokemonCard.number());
         cardEntity.setRarity(pokemonCard.rarity());
         cardEntity.setImageUrl(

@@ -25,4 +25,6 @@ public class CardResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private boolean favorite;
+    private String collectionId;
+    private Integer collectionTotal;
 }
