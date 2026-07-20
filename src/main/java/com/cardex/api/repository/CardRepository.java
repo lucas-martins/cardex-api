@@ -91,4 +91,19 @@ public interface CardRepository extends
     order by sum(card.quantity) desc, card.rarity asc
     """)
     List<RarityQuantityProjection> findQuantityGroupedByRarity();
+
+    boolean existsByFavoriteTrue();
+
+    @Query("""
+    select count(card)
+    from CardEntity card
+    where card.rarity is not null
+      and (
+          lower(card.rarity) like '%rare%'
+          or lower(card.rarity) like '%secret%'
+          or lower(card.rarity) like '%ultra%'
+          or lower(card.rarity) like '%illustration%'
+      )
+    """)
+    long countRareCards();
 }

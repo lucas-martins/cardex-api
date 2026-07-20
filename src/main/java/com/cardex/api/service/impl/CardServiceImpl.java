@@ -291,4 +291,112 @@ public class CardServiceImpl implements CardService {
                 rarities
         );
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CollectionGoalsResponse getCollectionGoals() {
+        long uniqueCards = cardRepository.count();
+
+        Long totalQuantity = cardRepository.sumTotalQuantity();
+        long totalCards = totalQuantity != null ? totalQuantity : 0L;
+
+        long differentLanguages =
+                cardRepository.countDifferentLanguages();
+
+        long differentCollections =
+                cardRepository.countDifferentCollections();
+
+        boolean hasFavorite =
+                cardRepository.existsByFavoriteTrue();
+
+        long rareCards =
+                cardRepository.countRareCards();
+
+        List<CollectionGoalResponse> goals = List.of(
+                createGoal(
+                        "FIRST_CARD",
+                        "First card",
+                        "Add your first card to the collection.",
+                        totalCards,
+                        1
+                ),
+                createGoal(
+                        "TEN_CARDS",
+                        "10 cards collected",
+                        "Reach a total of 10 cards.",
+                        totalCards,
+                        10
+                ),
+                createGoal(
+                        "FIFTY_CARDS",
+                        "50 cards collected",
+                        "Reach a total of 50 cards.",
+                        totalCards,
+                        50
+                ),
+                createGoal(
+                        "ONE_HUNDRED_CARDS",
+                        "100 cards collected",
+                        "Reach a total of 100 cards.",
+                        totalCards,
+                        100
+                ),
+                createGoal(
+                        "FIRST_FAVORITE",
+                        "First favorite",
+                        "Mark your first card as favorite.",
+                        hasFavorite ? 1 : 0,
+                        1
+                ),
+                createGoal(
+                        "FIVE_COLLECTIONS",
+                        "5 different collections",
+                        "Own cards from at least 5 different collections.",
+                        differentCollections,
+                        5
+                ),
+                createGoal(
+                        "THREE_LANGUAGES",
+                        "3 different languages",
+                        "Own cards in at least 3 different languages.",
+                        differentLanguages,
+                        3
+                ),
+                createGoal(
+                        "FIRST_RARE_CARD",
+                        "First rare card",
+                        "Add your first rare card to the collection.",
+                        rareCards,
+                        1
+                )
+        );
+
+        long completedGoals = goals
+                .stream()
+                .filter(CollectionGoalResponse::completed)
+                .count();
+
+        return new CollectionGoalsResponse(
+                completedGoals,
+                goals.size(),
+                goals
+        );
+    }
+
+    private CollectionGoalResponse createGoal(
+            String code,
+            String title,
+            String description,
+            long currentValue,
+            long targetValue
+    ) {
+        return new CollectionGoalResponse(
+                code,
+                title,
+                description,
+                Math.min(currentValue, targetValue),
+                targetValue,
+                currentValue >= targetValue
+        );
+    }
 }

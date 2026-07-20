@@ -5,6 +5,7 @@ import com.cardex.api.dto.request.UpdateCardFavoriteRequest;
 import com.cardex.api.dto.request.UpdateCardRequest;
 import com.cardex.api.dto.response.CardResponse;
 import com.cardex.api.dto.response.CollectionAnalyticsResponse;
+import com.cardex.api.dto.response.CollectionGoalsResponse;
 import com.cardex.api.dto.response.CollectionSummaryResponse;
 import com.cardex.api.enumeration.CardCondition;
 import com.cardex.api.enumeration.CardLanguage;
@@ -123,6 +124,13 @@ public class CardController {
     getCollectionAnalytics() {
         return ResponseEntity.ok(
                 cardService.getCollectionAnalytics()
+        );
+    }
+
+    @GetMapping("/goals")
+    public ResponseEntity<CollectionGoalsResponse> getCollectionGoals() {
+        return ResponseEntity.ok(
+                cardService.getCollectionGoals()
         );
     }
 }
