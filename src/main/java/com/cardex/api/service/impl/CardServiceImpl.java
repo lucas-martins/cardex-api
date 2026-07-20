@@ -26,8 +26,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Sort;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
@@ -47,6 +50,8 @@ public class CardServiceImpl implements CardService {
             "createdAt",
             "updatedAt"
     );
+    private static final Pattern CARD_NUMBER_PATTERN =
+            Pattern.compile("^([A-Za-z]*)(\\d+)(.*)$");
 
     @Override
     @Transactional
@@ -480,11 +485,13 @@ public class CardServiceImpl implements CardService {
     @Transactional(readOnly = true)
     public CollectionDetailsResponse getCollectionDetails(String collectionId) {
         List<CardEntity> cards =
-                cardRepository.findByCollectionIdOrderByCardNumberAsc(collectionId);
+                cardRepository.findByCollectionId(collectionId);
 
         if (cards.isEmpty()) {
             throw new CollectionNotFoundException(collectionId);
         }
+
+        cards.sort(cardNumberComparator());
 
         CardEntity firstCard = cards.get(0);
 
@@ -524,5 +531,58 @@ public class CardServiceImpl implements CardService {
                 Math.round(completionPercentage * 100.0) / 100.0,
                 ownedCards
         );
+    }
+
+    private Comparator<CardEntity> cardNumberComparator() {
+        return Comparator.comparing(
+                CardEntity::getCardNumber,
+                this::compareCardNumbers
+        );
+    }
+
+    private int compareCardNumbers(String first, String second) {
+        if (first == null && second == null) {
+            return 0;
+        }
+
+        if (first == null) {
+            return 1;
+        }
+
+        if (second == null) {
+            return -1;
+        }
+
+        Matcher firstMatcher = CARD_NUMBER_PATTERN.matcher(first);
+        Matcher secondMatcher = CARD_NUMBER_PATTERN.matcher(second);
+
+        if (!firstMatcher.matches() || !secondMatcher.matches()) {
+            return first.compareToIgnoreCase(second);
+        }
+
+        String firstPrefix = firstMatcher.group(1);
+        String secondPrefix = secondMatcher.group(1);
+
+        int prefixComparison =
+                firstPrefix.compareToIgnoreCase(secondPrefix);
+
+        if (prefixComparison != 0) {
+            return prefixComparison;
+        }
+
+        long firstNumber = Long.parseLong(firstMatcher.group(2));
+        long secondNumber = Long.parseLong(secondMatcher.group(2));
+
+        int numberComparison =
+                Long.compare(firstNumber, secondNumber);
+
+        if (numberComparison != 0) {
+            return numberComparison;
+        }
+
+        String firstSuffix = firstMatcher.group(3);
+        String secondSuffix = secondMatcher.group(3);
+
+        return firstSuffix.compareToIgnoreCase(secondSuffix);
     }
 }
