@@ -42,4 +42,6 @@ public interface CardService {
     CollectionGoalsResponse getCollectionGoals();
 
     List<CollectionProgressResponse> getCollectionProgress();
+
+    RefreshCardMetadataResponse refreshMetadata();
 }

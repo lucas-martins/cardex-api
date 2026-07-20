@@ -140,4 +140,13 @@ public class CardController {
                 cardService.getCollectionProgress()
         );
     }
+
+    @PostMapping("/refresh-metadata")
+    public ResponseEntity<RefreshCardMetadataResponse>
+    refreshMetadata() {
+
+        return ResponseEntity.ok(
+                cardService.refreshMetadata()
+        );
+    }
 }

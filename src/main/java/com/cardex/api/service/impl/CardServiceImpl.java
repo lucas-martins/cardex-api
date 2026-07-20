@@ -429,4 +429,49 @@ public class CardServiceImpl implements CardService {
                 })
                 .toList();
     }
+
+    @Override
+    @Transactional
+    public RefreshCardMetadataResponse refreshMetadata() {
+        List<CardEntity> cards = cardRepository.findAll();
+
+        long processed = 0;
+        long updated = 0;
+
+        for (CardEntity card : cards) {
+
+            processed++;
+
+            if (card.getCollectionId() != null &&
+                    card.getCollectionTotal() != null) {
+                continue;
+            }
+
+            PokemonCardApiSingleResponse response =
+                    pokemonTcgClient.findById(card.getExternalId());
+
+            PokemonCardApiData pokemonCard = response.data();
+
+            if (pokemonCard.set() != null) {
+
+                card.setCollectionId(
+                        pokemonCard.set().id());
+
+                card.setCollectionName(
+                        pokemonCard.set().name());
+
+                card.setCollectionTotal(
+                        pokemonCard.set().total());
+
+                updated++;
+            }
+        }
+
+        cardRepository.saveAll(cards);
+
+        return new RefreshCardMetadataResponse(
+                processed,
+                updated
+        );
+    }
 }
