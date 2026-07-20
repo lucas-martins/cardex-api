@@ -121,4 +121,6 @@ public interface CardRepository extends
              card.collectionName asc
     """)
     List<CollectionProgressProjection> findCollectionProgress();
+
+    List<CardEntity> findByCollectionIdOrderByCardNumberAsc(String collectionId);
 }

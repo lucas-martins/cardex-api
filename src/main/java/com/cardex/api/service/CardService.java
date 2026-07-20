@@ -44,4 +44,6 @@ public interface CardService {
     List<CollectionProgressResponse> getCollectionProgress();
 
     RefreshCardMetadataResponse refreshMetadata();
+
+    CollectionDetailsResponse getCollectionDetails(String collectionId);
 }

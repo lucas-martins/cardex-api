@@ -149,4 +149,13 @@ public class CardController {
                 cardService.refreshMetadata()
         );
     }
+
+    @GetMapping("/collections/{collectionId}")
+    public ResponseEntity<CollectionDetailsResponse> getCollectionDetails(
+            @PathVariable String collectionId
+    ) {
+        return ResponseEntity.ok(
+                cardService.getCollectionDetails(collectionId)
+        );
+    }
 }

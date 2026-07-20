@@ -7,6 +7,7 @@ import com.cardex.api.dto.response.*;
 import com.cardex.api.entity.CardEntity;
 import com.cardex.api.enumeration.CardCondition;
 import com.cardex.api.enumeration.CardLanguage;
+import com.cardex.api.exception.CollectionNotFoundException;
 import com.cardex.api.exception.PokemonCardNotFoundException;
 import com.cardex.api.exception.CardNotFoundException;
 import com.cardex.api.mapper.CardMapper;
@@ -472,6 +473,56 @@ public class CardServiceImpl implements CardService {
         return new RefreshCardMetadataResponse(
                 processed,
                 updated
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CollectionDetailsResponse getCollectionDetails(String collectionId) {
+        List<CardEntity> cards =
+                cardRepository.findByCollectionIdOrderByCardNumberAsc(collectionId);
+
+        if (cards.isEmpty()) {
+            throw new CollectionNotFoundException(collectionId);
+        }
+
+        CardEntity firstCard = cards.get(0);
+
+        long ownedUniqueCards = cards.stream()
+                .map(CardEntity::getExternalId)
+                .distinct()
+                .count();
+
+        long totalCards = firstCard.getCollectionTotal() != null
+                ? firstCard.getCollectionTotal()
+                : 0;
+
+        double completionPercentage = totalCards > 0
+                ? (ownedUniqueCards * 100.0) / totalCards
+                : 0.0;
+
+        List<CollectionOwnedCardResponse> ownedCards = cards.stream()
+                .map(card -> new CollectionOwnedCardResponse(
+                        card.getId(),
+                        card.getExternalId(),
+                        card.getName(),
+                        card.getCardNumber(),
+                        card.getRarity(),
+                        card.getImageUrl(),
+                        card.getQuantity(),
+                        card.getLanguage().name(),
+                        card.getCondition().name(),
+                        card.isFavorite()
+                ))
+                .toList();
+
+        return new CollectionDetailsResponse(
+                firstCard.getCollectionId(),
+                firstCard.getCollectionName(),
+                ownedUniqueCards,
+                totalCards,
+                Math.round(completionPercentage * 100.0) / 100.0,
+                ownedCards
         );
     }
 }

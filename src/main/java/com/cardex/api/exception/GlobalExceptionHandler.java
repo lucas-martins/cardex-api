@@ -238,4 +238,24 @@ public class GlobalExceptionHandler {
                 .status(status)
                 .body(response);
     }
+
+    @ExceptionHandler(CollectionNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleCollectionNotFound(
+            CollectionNotFoundException exception,
+            HttpServletRequest request
+    ) {
+        HttpStatus status = HttpStatus.NOT_FOUND;
+
+        ApiErrorResponse response = new ApiErrorResponse(
+                status.value(),
+                status.getReasonPhrase(),
+                exception.getMessage(),
+                request.getRequestURI(),
+                LocalDateTime.now()
+        );
+
+        return ResponseEntity
+                .status(status)
+                .body(response);
+    }
 }
