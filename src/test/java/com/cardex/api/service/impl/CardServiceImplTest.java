@@ -2,6 +2,7 @@ package com.cardex.api.service.impl;
 
 import com.cardex.api.dto.request.CreateCardRequest;
 import com.cardex.api.dto.response.CardResponse;
+import com.cardex.api.dto.request.UpdateCardRequest;
 import com.cardex.api.entity.CardEntity;
 import com.cardex.api.enumeration.CardCondition;
 import com.cardex.api.enumeration.CardLanguage;
@@ -92,20 +93,41 @@ class CardServiceImplTest {
     }
 
     @Test
-    void shouldUpdateCardQuantity() {
-        UpdateCardQuantityRequest request =
-                new UpdateCardQuantityRequest(3);
+    void shouldUpdateCard() {
+        UpdateCardRequest request = new UpdateCardRequest();
+        request.setQuantity(3);
+        request.setLanguage(CardLanguage.PORTUGUESE);
+        request.setCondition(CardCondition.MINT);
+        request.setNotes("Updated card");
 
         cardEntity.setQuantity(1);
+        cardEntity.setLanguage(CardLanguage.ENGLISH);
+        cardEntity.setCondition(CardCondition.NEAR_MINT);
+        cardEntity.setNotes(null);
 
         CardResponse updatedResponse = CardResponse.builder()
                 .id(1L)
                 .name("Decidueye-GX")
                 .quantity(3)
+                .language(CardLanguage.PORTUGUESE)
+                .condition(CardCondition.MINT)
+                .notes("Updated card")
                 .build();
 
         when(cardRepository.findById(1L))
                 .thenReturn(Optional.of(cardEntity));
+
+        doAnswer(invocation -> {
+            UpdateCardRequest updateRequest = invocation.getArgument(0);
+            CardEntity entity = invocation.getArgument(1);
+
+            entity.setQuantity(updateRequest.getQuantity());
+            entity.setLanguage(updateRequest.getLanguage());
+            entity.setCondition(updateRequest.getCondition());
+            entity.setNotes(updateRequest.getNotes());
+
+            return null;
+        }).when(cardMapper).updateEntity(request, cardEntity);
 
         when(cardRepository.save(cardEntity))
                 .thenReturn(cardEntity);
@@ -113,28 +135,34 @@ class CardServiceImplTest {
         when(cardMapper.toResponse(cardEntity))
                 .thenReturn(updatedResponse);
 
-        CardResponse result =
-                cardService.updateQuantity(1L, request);
+        CardResponse result = cardService.update(1L, request);
 
         assertEquals(3, cardEntity.getQuantity());
+        assertEquals(CardLanguage.PORTUGUESE, cardEntity.getLanguage());
+        assertEquals(CardCondition.MINT, cardEntity.getCondition());
+        assertEquals("Updated card", cardEntity.getNotes());
         assertEquals(3, result.getQuantity());
 
         verify(cardRepository).findById(1L);
+        verify(cardMapper).updateEntity(request, cardEntity);
         verify(cardRepository).save(cardEntity);
         verify(cardMapper).toResponse(cardEntity);
     }
 
     @Test
-    void shouldThrowExceptionWhenUpdatingQuantityOfNonexistentCard() {
-        UpdateCardQuantityRequest request =
-                new UpdateCardQuantityRequest(3);
+    void shouldThrowExceptionWhenUpdatingNonexistentCard() {
+        UpdateCardRequest request = new UpdateCardRequest();
+        request.setQuantity(3);
+        request.setLanguage(CardLanguage.ENGLISH);
+        request.setCondition(CardCondition.NEAR_MINT);
+        request.setNotes("Updated card");
 
         when(cardRepository.findById(999L))
                 .thenReturn(Optional.empty());
 
         CardNotFoundException exception = assertThrows(
                 CardNotFoundException.class,
-                () -> cardService.updateQuantity(999L, request)
+                () -> cardService.update(999L, request)
         );
 
         assertEquals(
@@ -143,7 +171,7 @@ class CardServiceImplTest {
         );
 
         verify(cardRepository).findById(999L);
-        verify(cardRepository, never()).save(cardEntity);
+        verify(cardRepository, never()).save(any(CardEntity.class));
     }
 
     @Test
