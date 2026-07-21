@@ -1,6 +1,7 @@
 package com.cardex.api.controller;
 
 import com.cardex.api.dto.response.CardImportPreviewResponse;
+import com.cardex.api.dto.response.CardImportResponse;
 import com.cardex.api.service.CardImportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -27,6 +28,18 @@ public class CardImportController {
     ) {
         return ResponseEntity.ok(
                 cardImportService.previewCsv(file)
+        );
+    }
+
+    @PostMapping(
+            value = "/csv",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<CardImportResponse> importCsv(
+            @RequestParam("file") MultipartFile file
+    ) {
+        return ResponseEntity.ok(
+                cardImportService.importCsv(file)
         );
     }
 }
