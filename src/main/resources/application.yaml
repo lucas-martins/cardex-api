@@ -19,3 +19,9 @@ spring:
 pokemon-tcg:
   base-url: https://api.pokemontcg.io/v2
   api-key: ${POKEMON_TCG_API_KEY}
+
+cardex:
+  security:
+    jwt:
+      secret: carddex-super-secret-development-key-2026
+      expiration-minutes: 120
