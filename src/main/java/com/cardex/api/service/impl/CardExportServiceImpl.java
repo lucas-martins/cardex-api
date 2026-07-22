@@ -1,13 +1,13 @@
 package com.cardex.api.service.impl;
 
 import com.cardex.api.entity.CardEntity;
-import com.cardex.api.repository.CardRepository;
-import com.cardex.api.service.CardExportService;
 import com.cardex.api.entity.UserEntity;
+import com.cardex.api.repository.CardRepository;
 import com.cardex.api.service.AuthenticatedUserService;
+import com.cardex.api.service.CardExportService;
 import com.cardex.api.specification.CardSpecification;
-import org.springframework.data.domain.Sort;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,7 +28,6 @@ public class CardExportServiceImpl implements CardExportService {
     @Override
     @Transactional(readOnly = true)
     public byte[] exportCsv() {
-
         UserEntity authenticatedUser =
                 authenticatedUserService.getAuthenticatedUser();
 

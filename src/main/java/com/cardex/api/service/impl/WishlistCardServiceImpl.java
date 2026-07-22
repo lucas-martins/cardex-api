@@ -1,17 +1,17 @@
 package com.cardex.api.service.impl;
 
-import com.cardex.api.exception.WishlistCardNotFoundException;
-import com.cardex.api.pokemon.dto.PokemonCardApiSingleResponse;
 import com.cardex.api.dto.wishlist.WishlistCardRequest;
 import com.cardex.api.dto.wishlist.WishlistCardResponse;
+import com.cardex.api.entity.UserEntity;
 import com.cardex.api.entity.WishlistCardEntity;
 import com.cardex.api.exception.WishlistCardAlreadyExistsException;
+import com.cardex.api.exception.WishlistCardNotFoundException;
 import com.cardex.api.mapper.WishlistCardMapper;
 import com.cardex.api.pokemon.client.PokemonTcgClient;
+import com.cardex.api.pokemon.dto.PokemonCardApiSingleResponse;
 import com.cardex.api.repository.WishlistCardRepository;
-import com.cardex.api.service.WishlistCardService;
-import com.cardex.api.entity.UserEntity;
 import com.cardex.api.service.AuthenticatedUserService;
+import com.cardex.api.service.WishlistCardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,7 +30,6 @@ public class WishlistCardServiceImpl implements WishlistCardService {
 
     @Override
     public WishlistCardResponse create(WishlistCardRequest request) {
-
         UserEntity authenticatedUser =
                 authenticatedUserService.getAuthenticatedUser();
 
@@ -38,7 +37,9 @@ public class WishlistCardServiceImpl implements WishlistCardService {
                 authenticatedUser,
                 request.externalId()
         )) {
-            throw new WishlistCardAlreadyExistsException(request.externalId());
+            throw new WishlistCardAlreadyExistsException(
+                    request.externalId()
+            );
         }
 
         PokemonCardApiSingleResponse response =
@@ -48,6 +49,7 @@ public class WishlistCardServiceImpl implements WishlistCardService {
 
         WishlistCardEntity entity =
                 WishlistCardEntity.builder()
+                        .user(authenticatedUser)
                         .externalId(pokemonCard.id())
                         .name(pokemonCard.name())
                         .cardNumber(pokemonCard.number())
@@ -57,7 +59,7 @@ public class WishlistCardServiceImpl implements WishlistCardService {
                         .rarity(pokemonCard.rarity())
                         .imageUrl(pokemonCard.images().large())
                         .build();
-        entity.setUser(authenticatedUser);
+
         repository.save(entity);
 
         return mapper.toResponse(entity);
@@ -66,7 +68,6 @@ public class WishlistCardServiceImpl implements WishlistCardService {
     @Override
     @Transactional(readOnly = true)
     public List<WishlistCardResponse> findAll() {
-
         UserEntity authenticatedUser =
                 authenticatedUserService.getAuthenticatedUser();
 
@@ -81,14 +82,14 @@ public class WishlistCardServiceImpl implements WishlistCardService {
 
     @Override
     public void delete(Long id) {
-
         UserEntity authenticatedUser =
                 authenticatedUserService.getAuthenticatedUser();
 
         WishlistCardEntity entity = repository
                 .findByIdAndUser(id, authenticatedUser)
                 .orElseThrow(() ->
-                        new WishlistCardNotFoundException(id));
+                        new WishlistCardNotFoundException(id)
+                );
 
         repository.delete(entity);
     }

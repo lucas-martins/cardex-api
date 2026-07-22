@@ -2,10 +2,11 @@ package com.cardex.api.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,7 +15,18 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "wishlist_cards")
+@Table(
+        name = "wishlist_cards",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_wishlist_user_external_id",
+                        columnNames = {
+                                "user_id",
+                                "external_id"
+                        }
+                )
+        }
+)
 @Getter
 @Setter
 @Builder
@@ -26,7 +38,7 @@ public class WishlistCardEntity extends BaseEntity {
     @JoinColumn(name = "user_id")
     private UserEntity user;
 
-    @Column(name = "external_id", nullable = false, unique = true)
+    @Column(name = "external_id", nullable = false)
     private String externalId;
 
     @Column(nullable = false)
