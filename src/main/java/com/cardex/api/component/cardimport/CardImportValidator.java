@@ -4,6 +4,8 @@ import com.cardex.api.dto.response.CardImportPreviewItemResponse;
 import com.cardex.api.enumeration.CardCondition;
 import com.cardex.api.enumeration.CardLanguage;
 import com.cardex.api.repository.CardRepository;
+import com.cardex.api.entity.UserEntity;
+import com.cardex.api.service.AuthenticatedUserService;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.csv.CSVRecord;
 import org.springframework.stereotype.Component;
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Component;
 public class CardImportValidator {
 
     private final CardRepository cardRepository;
+    private final AuthenticatedUserService authenticatedUserService;
 
     public CardImportPreviewItemResponse validate(CSVRecord record) {
         String externalId = record.get(CardCsvHeaders.EXTERNAL_ID);
@@ -60,12 +63,18 @@ public class CardImportValidator {
 
             validateFavorite(record);
 
+            UserEntity authenticatedUser =
+                    authenticatedUserService.getAuthenticatedUser();
+
             boolean duplicate =
-                    cardRepository.existsByExternalIdAndLanguageAndCondition(
-                            externalId,
-                            language,
-                            condition
-                    );
+                    cardRepository
+                            .findByUserAndExternalIdAndLanguageAndCondition(
+                                    authenticatedUser,
+                                    externalId,
+                                    language,
+                                    condition
+                            )
+                            .isPresent();
 
             if (duplicate) {
                 return invalidItem(

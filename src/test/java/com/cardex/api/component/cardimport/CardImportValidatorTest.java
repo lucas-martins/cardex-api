@@ -1,9 +1,12 @@
 package com.cardex.api.component.cardimport;
 
 import com.cardex.api.dto.response.CardImportPreviewItemResponse;
+import com.cardex.api.entity.CardEntity;
+import com.cardex.api.entity.UserEntity;
 import com.cardex.api.enumeration.CardCondition;
 import com.cardex.api.enumeration.CardLanguage;
 import com.cardex.api.repository.CardRepository;
+import com.cardex.api.service.AuthenticatedUserService;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -16,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -31,11 +35,22 @@ class CardImportValidatorTest {
     @Mock
     private CardRepository cardRepository;
 
+    @Mock
+    private AuthenticatedUserService authenticatedUserService;
+
+    private UserEntity user;
+
     private CardImportValidator cardImportValidator;
 
     @BeforeEach
     void setUp() {
-        cardImportValidator = new CardImportValidator(cardRepository);
+        user = new UserEntity();
+        user.setEmail("test@example.com");
+
+        cardImportValidator = new CardImportValidator(
+                cardRepository,
+                authenticatedUserService
+        );
     }
 
     @Test
@@ -54,11 +69,15 @@ class CardImportValidatorTest {
                 "Imported card"
         );
 
-        when(cardRepository.existsByExternalIdAndLanguageAndCondition(
+        when(authenticatedUserService.getAuthenticatedUser())
+                .thenReturn(user);
+
+        when(cardRepository.findByUserAndExternalIdAndLanguageAndCondition(
+                user,
                 "sm1-12",
                 CardLanguage.ENGLISH,
                 CardCondition.NEAR_MINT
-        )).thenReturn(false);
+        )).thenReturn(Optional.empty());
 
         CardImportPreviewItemResponse result =
                 cardImportValidator.validate(record);
@@ -68,8 +87,11 @@ class CardImportValidatorTest {
         assertEquals("sm1-12", result.externalId());
         assertEquals(2, result.quantity());
 
+        verify(authenticatedUserService).getAuthenticatedUser();
+
         verify(cardRepository)
-                .existsByExternalIdAndLanguageAndCondition(
+                .findByUserAndExternalIdAndLanguageAndCondition(
+                        user,
                         "sm1-12",
                         CardLanguage.ENGLISH,
                         CardCondition.NEAR_MINT
@@ -102,8 +124,12 @@ class CardImportValidatorTest {
                 result.error()
         );
 
+        verify(authenticatedUserService, never())
+                .getAuthenticatedUser();
+
         verify(cardRepository, never())
-                .existsByExternalIdAndLanguageAndCondition(
+                .findByUserAndExternalIdAndLanguageAndCondition(
+                        user,
                         "",
                         CardLanguage.ENGLISH,
                         CardCondition.NEAR_MINT
@@ -312,11 +338,15 @@ class CardImportValidatorTest {
                 ""
         );
 
-        when(cardRepository.existsByExternalIdAndLanguageAndCondition(
+        when(authenticatedUserService.getAuthenticatedUser())
+                .thenReturn(user);
+
+        when(cardRepository.findByUserAndExternalIdAndLanguageAndCondition(
+                user,
                 "sm1-12",
                 CardLanguage.ENGLISH,
                 CardCondition.NEAR_MINT
-        )).thenReturn(true);
+        )).thenReturn(Optional.of(new CardEntity()));
 
         CardImportPreviewItemResponse result =
                 cardImportValidator.validate(record);
@@ -327,6 +357,16 @@ class CardImportValidatorTest {
                 "Card already exists in the collection.",
                 result.error()
         );
+
+        verify(authenticatedUserService).getAuthenticatedUser();
+
+        verify(cardRepository)
+                .findByUserAndExternalIdAndLanguageAndCondition(
+                        user,
+                        "sm1-12",
+                        CardLanguage.ENGLISH,
+                        CardCondition.NEAR_MINT
+                );
     }
 
     @Test
@@ -365,16 +405,30 @@ class CardImportValidatorTest {
 
         List<CSVRecord> records = parse(csv);
 
-        when(cardRepository.existsByExternalIdAndLanguageAndCondition(
+        when(authenticatedUserService.getAuthenticatedUser())
+                .thenReturn(user);
+
+        when(cardRepository.findByUserAndExternalIdAndLanguageAndCondition(
+                user,
                 "sm1-13",
                 CardLanguage.ENGLISH,
                 CardCondition.NEAR_MINT
-        )).thenReturn(false);
+        )).thenReturn(Optional.empty());
 
         CardImportPreviewItemResponse result =
                 cardImportValidator.validate(records.get(1));
 
         assertEquals(3L, result.line());
+
+        verify(authenticatedUserService).getAuthenticatedUser();
+
+        verify(cardRepository)
+                .findByUserAndExternalIdAndLanguageAndCondition(
+                        user,
+                        "sm1-13",
+                        CardLanguage.ENGLISH,
+                        CardCondition.NEAR_MINT
+                );
     }
 
     private CSVRecord createRecord(

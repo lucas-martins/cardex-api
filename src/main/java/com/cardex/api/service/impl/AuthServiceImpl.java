@@ -8,6 +8,7 @@ import com.cardex.api.exception.EmailAlreadyRegisteredException;
 import com.cardex.api.exception.InvalidCredentialsException;
 import com.cardex.api.repository.UserRepository;
 import com.cardex.api.service.AuthService;
+import com.cardex.api.service.AuthenticatedUserService;
 import com.cardex.api.service.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,6 +22,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final AuthenticatedUserService authenticatedUserService;
 
     @Override
     @Transactional
@@ -66,6 +68,26 @@ public class AuthServiceImpl implements AuthService {
                 jwtService.generateToken(user),
                 "Bearer",
                 jwtService.getExpirationSeconds(),
+                user.getId(),
+                user.getName(),
+                user.getEmail(),
+                user.getRole()
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AuthResponse getAuthenticatedUser() {
+        UserEntity user = authenticatedUserService.getAuthenticatedUser();
+
+        return toResponseWithoutToken(user);
+    }
+
+    private AuthResponse toResponseWithoutToken(UserEntity user) {
+        return new AuthResponse(
+                null,
+                null,
+                0,
                 user.getId(),
                 user.getName(),
                 user.getEmail(),

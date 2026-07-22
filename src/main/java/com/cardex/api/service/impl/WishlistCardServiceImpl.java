@@ -10,6 +10,8 @@ import com.cardex.api.mapper.WishlistCardMapper;
 import com.cardex.api.pokemon.client.PokemonTcgClient;
 import com.cardex.api.repository.WishlistCardRepository;
 import com.cardex.api.service.WishlistCardService;
+import com.cardex.api.entity.UserEntity;
+import com.cardex.api.service.AuthenticatedUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,11 +26,18 @@ public class WishlistCardServiceImpl implements WishlistCardService {
     private final WishlistCardRepository repository;
     private final WishlistCardMapper mapper;
     private final PokemonTcgClient pokemonTcgClient;
+    private final AuthenticatedUserService authenticatedUserService;
 
     @Override
     public WishlistCardResponse create(WishlistCardRequest request) {
 
-        if (repository.existsByExternalId(request.externalId())) {
+        UserEntity authenticatedUser =
+                authenticatedUserService.getAuthenticatedUser();
+
+        if (repository.existsByUserAndExternalId(
+                authenticatedUser,
+                request.externalId()
+        )) {
             throw new WishlistCardAlreadyExistsException(request.externalId());
         }
 
@@ -48,7 +57,7 @@ public class WishlistCardServiceImpl implements WishlistCardService {
                         .rarity(pokemonCard.rarity())
                         .imageUrl(pokemonCard.images().large())
                         .build();
-
+        entity.setUser(authenticatedUser);
         repository.save(entity);
 
         return mapper.toResponse(entity);
@@ -57,8 +66,14 @@ public class WishlistCardServiceImpl implements WishlistCardService {
     @Override
     @Transactional(readOnly = true)
     public List<WishlistCardResponse> findAll() {
+
+        UserEntity authenticatedUser =
+                authenticatedUserService.getAuthenticatedUser();
+
         return repository
-                .findAllByOrderByCreatedAtDesc()
+                .findAllByUserOrderByCreatedAtDesc(
+                        authenticatedUser
+                )
                 .stream()
                 .map(mapper::toResponse)
                 .toList();
@@ -66,9 +81,14 @@ public class WishlistCardServiceImpl implements WishlistCardService {
 
     @Override
     public void delete(Long id) {
+
+        UserEntity authenticatedUser =
+                authenticatedUserService.getAuthenticatedUser();
+
         WishlistCardEntity entity = repository
-                .findById(id)
-                .orElseThrow(() -> new WishlistCardNotFoundException(id));
+                .findByIdAndUser(id, authenticatedUser)
+                .orElseThrow(() ->
+                        new WishlistCardNotFoundException(id));
 
         repository.delete(entity);
     }

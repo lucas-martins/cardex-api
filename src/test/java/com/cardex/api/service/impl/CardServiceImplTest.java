@@ -15,6 +15,8 @@ import com.cardex.api.pokemon.dto.PokemonCardApiSingleResponse;
 import com.cardex.api.pokemon.dto.PokemonCardImagesApiData;
 import com.cardex.api.pokemon.dto.PokemonSetApiData;
 import com.cardex.api.repository.CardRepository;
+import com.cardex.api.entity.UserEntity;
+import com.cardex.api.service.AuthenticatedUserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,16 +42,24 @@ class CardServiceImplTest {
     @Mock
     private PokemonTcgClient pokemonTcgClient;
 
+    @Mock
+    private AuthenticatedUserService authenticatedUserService;
+
     @InjectMocks
     private CardServiceImpl cardService;
 
     private CardEntity cardEntity;
     private CardResponse cardResponse;
+    private UserEntity user;
 
     @BeforeEach
     void setUp() {
+        user = new UserEntity();
+        user.setEmail("test@example.com");
+
         cardEntity = new CardEntity();
         cardEntity.setName("Decidueye-GX");
+        cardEntity.setUser(user);
 
         cardResponse = CardResponse.builder()
                 .id(1L)
@@ -59,7 +69,10 @@ class CardServiceImplTest {
 
     @Test
     void shouldFindCardById() {
-        when(cardRepository.findById(1L))
+        when(authenticatedUserService.getAuthenticatedUser())
+                .thenReturn(user);
+
+        when(cardRepository.findByIdAndUser(1L, user))
                 .thenReturn(Optional.of(cardEntity));
 
         when(cardMapper.toResponse(cardEntity))
@@ -70,13 +83,17 @@ class CardServiceImplTest {
         assertEquals(1L, result.getId());
         assertEquals("Decidueye-GX", result.getName());
 
-        verify(cardRepository).findById(1L);
+        verify(authenticatedUserService).getAuthenticatedUser();
+        verify(cardRepository).findByIdAndUser(1L, user);
         verify(cardMapper).toResponse(cardEntity);
     }
 
     @Test
     void shouldThrowExceptionWhenCardDoesNotExist() {
-        when(cardRepository.findById(999L))
+        when(authenticatedUserService.getAuthenticatedUser())
+                .thenReturn(user);
+
+        when(cardRepository.findByIdAndUser(999L, user))
                 .thenReturn(Optional.empty());
 
         CardNotFoundException exception = assertThrows(
@@ -89,7 +106,8 @@ class CardServiceImplTest {
                 exception.getMessage()
         );
 
-        verify(cardRepository).findById(999L);
+        verify(authenticatedUserService).getAuthenticatedUser();
+        verify(cardRepository).findByIdAndUser(999L, user);
     }
 
     @Test
@@ -114,7 +132,10 @@ class CardServiceImplTest {
                 .notes("Updated card")
                 .build();
 
-        when(cardRepository.findById(1L))
+        when(authenticatedUserService.getAuthenticatedUser())
+                .thenReturn(user);
+
+        when(cardRepository.findByIdAndUser(1L, user))
                 .thenReturn(Optional.of(cardEntity));
 
         doAnswer(invocation -> {
@@ -143,7 +164,8 @@ class CardServiceImplTest {
         assertEquals("Updated card", cardEntity.getNotes());
         assertEquals(3, result.getQuantity());
 
-        verify(cardRepository).findById(1L);
+        verify(authenticatedUserService).getAuthenticatedUser();
+        verify(cardRepository).findByIdAndUser(1L, user);
         verify(cardMapper).updateEntity(request, cardEntity);
         verify(cardRepository).save(cardEntity);
         verify(cardMapper).toResponse(cardEntity);
@@ -157,7 +179,10 @@ class CardServiceImplTest {
         request.setCondition(CardCondition.NEAR_MINT);
         request.setNotes("Updated card");
 
-        when(cardRepository.findById(999L))
+        when(authenticatedUserService.getAuthenticatedUser())
+                .thenReturn(user);
+
+        when(cardRepository.findByIdAndUser(999L, user))
                 .thenReturn(Optional.empty());
 
         CardNotFoundException exception = assertThrows(
@@ -170,7 +195,8 @@ class CardServiceImplTest {
                 exception.getMessage()
         );
 
-        verify(cardRepository).findById(999L);
+        verify(authenticatedUserService).getAuthenticatedUser();
+        verify(cardRepository).findByIdAndUser(999L, user);
         verify(cardRepository, never()).save(any(CardEntity.class));
     }
 
@@ -196,7 +222,11 @@ class CardServiceImplTest {
                 .condition(CardCondition.NEAR_MINT)
                 .build();
 
-        when(cardRepository.findByExternalIdAndLanguageAndCondition(
+        when(authenticatedUserService.getAuthenticatedUser())
+                .thenReturn(user);
+
+        when(cardRepository.findByUserAndExternalIdAndLanguageAndCondition(
+                user,
                 "sm1-12",
                 CardLanguage.ENGLISH,
                 CardCondition.NEAR_MINT
@@ -213,13 +243,16 @@ class CardServiceImplTest {
         assertEquals(5, cardEntity.getQuantity());
         assertEquals(5, result.getQuantity());
 
-        verify(cardRepository).findByExternalIdAndLanguageAndCondition(
-                "sm1-12",
-                CardLanguage.ENGLISH,
-                CardCondition.NEAR_MINT
-        );
+        verify(cardRepository)
+                .findByUserAndExternalIdAndLanguageAndCondition(
+                        user,
+                        "sm1-12",
+                        CardLanguage.ENGLISH,
+                        CardCondition.NEAR_MINT
+                );
         verify(cardRepository).save(cardEntity);
         verify(cardMapper).toResponse(cardEntity);
+        verify(authenticatedUserService).getAuthenticatedUser();
         verifyNoInteractions(pokemonTcgClient);
     }
 
@@ -279,7 +312,11 @@ class CardServiceImplTest {
                 .notes("First card")
                 .build();
 
-        when(cardRepository.findByExternalIdAndLanguageAndCondition(
+        when(authenticatedUserService.getAuthenticatedUser())
+                .thenReturn(user);
+
+        when(cardRepository.findByUserAndExternalIdAndLanguageAndCondition(
+                user,
                 "sm1-12",
                 CardLanguage.ENGLISH,
                 CardCondition.NEAR_MINT
@@ -298,6 +335,7 @@ class CardServiceImplTest {
                 .thenReturn(savedResponse);
 
         CardResponse result = cardService.create(request);
+        assertEquals(user, newCardEntity.getUser());
 
         assertEquals("Decidueye-GX", newCardEntity.getName());
         assertEquals("Sun & Moon", newCardEntity.getCollectionName());
@@ -315,6 +353,7 @@ class CardServiceImplTest {
         verify(cardMapper).toEntity(request);
         verify(cardRepository).save(newCardEntity);
         verify(cardMapper).toResponse(newCardEntity);
+        verify(authenticatedUserService).getAuthenticatedUser();
     }
 
     @Test
@@ -325,7 +364,11 @@ class CardServiceImplTest {
         request.setLanguage(CardLanguage.ENGLISH);
         request.setCondition(CardCondition.NEAR_MINT);
 
-        when(cardRepository.findByExternalIdAndLanguageAndCondition(
+        when(authenticatedUserService.getAuthenticatedUser())
+                .thenReturn(user);
+
+        when(cardRepository.findByUserAndExternalIdAndLanguageAndCondition(
+                user,
                 "invalid-id",
                 CardLanguage.ENGLISH,
                 CardCondition.NEAR_MINT
@@ -344,12 +387,15 @@ class CardServiceImplTest {
                 exception.getMessage()
         );
 
-        verify(cardRepository).findByExternalIdAndLanguageAndCondition(
-                "invalid-id",
-                CardLanguage.ENGLISH,
-                CardCondition.NEAR_MINT
-        );
+        verify(cardRepository)
+                .findByUserAndExternalIdAndLanguageAndCondition(
+                        user,
+                        "invalid-id",
+                        CardLanguage.ENGLISH,
+                        CardCondition.NEAR_MINT
+                );
         verify(pokemonTcgClient).findById("invalid-id");
         verify(cardRepository, never()).save(any(CardEntity.class));
+        verify(authenticatedUserService).getAuthenticatedUser();
     }
 }

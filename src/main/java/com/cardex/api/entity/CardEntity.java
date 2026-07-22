@@ -15,6 +15,7 @@ import lombok.Setter;
                 @UniqueConstraint(
                         name = "uk_cards_external_language_condition",
                         columnNames = {
+                                "user_id",
                                 "external_id",
                                 "language",
                                 "card_condition"
@@ -27,6 +28,10 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CardEntity extends BaseEntity {
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private UserEntity user;
 
     @Column(name = "external_id", length = 50)
     private String externalId;

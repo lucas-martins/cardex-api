@@ -3,6 +3,10 @@ package com.cardex.api.service.impl;
 import com.cardex.api.entity.CardEntity;
 import com.cardex.api.repository.CardRepository;
 import com.cardex.api.service.CardExportService;
+import com.cardex.api.entity.UserEntity;
+import com.cardex.api.service.AuthenticatedUserService;
+import com.cardex.api.specification.CardSpecification;
+import org.springframework.data.domain.Sort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,11 +23,19 @@ public class CardExportServiceImpl implements CardExportService {
                     + "Quantity,Language,Condition,Favorite,Notes";
 
     private final CardRepository cardRepository;
+    private final AuthenticatedUserService authenticatedUserService;
 
     @Override
     @Transactional(readOnly = true)
     public byte[] exportCsv() {
-        List<CardEntity> cards = cardRepository.findAll();
+
+        UserEntity authenticatedUser =
+                authenticatedUserService.getAuthenticatedUser();
+
+        List<CardEntity> cards = cardRepository.findAll(
+                CardSpecification.userEquals(authenticatedUser),
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
 
         StringBuilder csv = new StringBuilder();
 

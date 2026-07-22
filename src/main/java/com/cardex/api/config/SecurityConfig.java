@@ -16,8 +16,13 @@ public class SecurityConfig {
             throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(authorize ->
-                        authorize.anyRequest().permitAll()
+                .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers(
+                                "/api/auth/register",
+                                "/api/auth/login"
+                        ).permitAll()
+                        .anyRequest()
+                        .authenticated()
                 )
                 .oauth2ResourceServer(resourceServer ->
                         resourceServer.jwt(Customizer.withDefaults())

@@ -3,6 +3,7 @@ package com.cardex.api.specification;
 import com.cardex.api.entity.CardEntity;
 import com.cardex.api.enumeration.CardCondition;
 import com.cardex.api.enumeration.CardLanguage;
+import com.cardex.api.entity.UserEntity;
 import org.springframework.data.jpa.domain.Specification;
 
 public final class CardSpecification {
@@ -64,5 +65,13 @@ public final class CardSpecification {
                     favorite
             );
         };
+    }
+
+    public static Specification<CardEntity> userEquals(UserEntity user) {
+        return (root, query, criteriaBuilder) ->
+                criteriaBuilder.equal(
+                        root.get("user"),
+                        user
+                );
     }
 }
