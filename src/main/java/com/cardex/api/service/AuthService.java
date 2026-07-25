@@ -1,5 +1,6 @@
 package com.cardex.api.service;
 
+import com.cardex.api.dto.request.ChangePasswordRequest;
 import com.cardex.api.dto.request.LoginRequest;
 import com.cardex.api.dto.request.RegisterRequest;
 import com.cardex.api.dto.response.AuthResponse;
@@ -11,4 +12,6 @@ public interface AuthService {
     AuthResponse login(LoginRequest request);
 
     AuthResponse getAuthenticatedUser();
+
+    void changePassword(ChangePasswordRequest request);
 }

@@ -1,5 +1,6 @@
 package com.cardex.api.service.impl;
 
+import com.cardex.api.dto.request.ChangePasswordRequest;
 import com.cardex.api.dto.request.LoginRequest;
 import com.cardex.api.dto.request.RegisterRequest;
 import com.cardex.api.dto.response.AuthResponse;
@@ -7,6 +8,7 @@ import com.cardex.api.entity.UserEntity;
 import com.cardex.api.enumeration.UserRole;
 import com.cardex.api.exception.EmailAlreadyRegisteredException;
 import com.cardex.api.exception.InvalidCredentialsException;
+import com.cardex.api.exception.InvalidCurrentPasswordException;
 import com.cardex.api.repository.UserRepository;
 import com.cardex.api.service.AuthenticatedUserService;
 import com.cardex.api.service.JwtService;
@@ -36,6 +38,9 @@ class AuthServiceImplTest {
     private static final String ENCODED_PASSWORD = "encoded-password";
     private static final String ACCESS_TOKEN = "access-token";
     private static final long EXPIRATION_SECONDS = 7200L;
+    private static final String NEW_PASSWORD = "new-password";
+    private static final String NEW_ENCODED_PASSWORD =
+            "new-encoded-password";
 
     @Mock
     private UserRepository userRepository;
@@ -204,5 +209,61 @@ class AuthServiceImplTest {
         AuthResponse response = authService.getAuthenticatedUser();
 
         assertEquals(EMAIL, response.email());
+    }
+
+    @Test
+    void shouldChangePassword() {
+        ChangePasswordRequest request =
+                new ChangePasswordRequest(
+                        PASSWORD,
+                        NEW_PASSWORD
+                );
+
+        when(authenticatedUserService.getAuthenticatedUser())
+                .thenReturn(user);
+
+        when(passwordEncoder.matches(
+                PASSWORD,
+                ENCODED_PASSWORD
+        )).thenReturn(true);
+
+        when(passwordEncoder.encode(NEW_PASSWORD))
+                .thenReturn(NEW_ENCODED_PASSWORD);
+
+        authService.changePassword(request);
+
+        assertEquals(
+                NEW_ENCODED_PASSWORD,
+                user.getPassword()
+        );
+
+        verify(passwordEncoder).encode(NEW_PASSWORD);
+    }
+
+    @Test
+    void shouldThrowExceptionWhenCurrentPasswordIsInvalid() {
+        ChangePasswordRequest request =
+                new ChangePasswordRequest(
+                        PASSWORD,
+                        NEW_PASSWORD
+                );
+
+        when(authenticatedUserService.getAuthenticatedUser())
+                .thenReturn(user);
+
+        when(passwordEncoder.matches(
+                PASSWORD,
+                ENCODED_PASSWORD
+        )).thenReturn(false);
+
+        assertThrows(
+                InvalidCurrentPasswordException.class,
+                () -> authService.changePassword(request)
+        );
+
+        verify(
+                passwordEncoder,
+                never()
+        ).encode(any(String.class));
     }
 }

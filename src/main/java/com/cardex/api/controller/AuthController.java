@@ -1,5 +1,6 @@
 package com.cardex.api.controller;
 
+import com.cardex.api.dto.request.ChangePasswordRequest;
 import com.cardex.api.dto.request.LoginRequest;
 import com.cardex.api.dto.request.RegisterRequest;
 import com.cardex.api.dto.response.AuthResponse;
@@ -38,5 +39,14 @@ public class AuthController {
         return ResponseEntity.ok(
                 authService.getAuthenticatedUser()
         );
+    }
+
+    @PutMapping("/me/password")
+    public ResponseEntity<Void> changePassword(
+            @Valid @RequestBody ChangePasswordRequest request
+    ) {
+        authService.changePassword(request);
+
+        return ResponseEntity.noContent().build();
     }
 }

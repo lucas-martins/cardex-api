@@ -1,11 +1,13 @@
 package com.cardex.api.service.impl;
 
+import com.cardex.api.dto.request.ChangePasswordRequest;
 import com.cardex.api.dto.request.LoginRequest;
 import com.cardex.api.dto.request.RegisterRequest;
 import com.cardex.api.dto.response.AuthResponse;
 import com.cardex.api.entity.UserEntity;
 import com.cardex.api.exception.EmailAlreadyRegisteredException;
 import com.cardex.api.exception.InvalidCredentialsException;
+import com.cardex.api.exception.InvalidCurrentPasswordException;
 import com.cardex.api.repository.UserRepository;
 import com.cardex.api.service.AuthService;
 import com.cardex.api.service.AuthenticatedUserService;
@@ -92,6 +94,24 @@ public class AuthServiceImpl implements AuthService {
                 user.getName(),
                 user.getEmail(),
                 user.getRole()
+        );
+    }
+
+    @Override
+    @Transactional
+    public void changePassword(ChangePasswordRequest request) {
+        UserEntity user =
+                authenticatedUserService.getAuthenticatedUser();
+
+        if (!passwordEncoder.matches(
+                request.currentPassword(),
+                user.getPassword()
+        )) {
+            throw new InvalidCurrentPasswordException();
+        }
+
+        user.setPassword(
+                passwordEncoder.encode(request.newPassword())
         );
     }
 }
