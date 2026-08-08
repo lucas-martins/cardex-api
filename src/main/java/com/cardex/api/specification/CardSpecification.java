@@ -103,4 +103,19 @@ public final class CardSpecification {
             );
         };
     }
+
+    public static Specification<CardEntity> numberContains(
+            String number
+    ) {
+        return (root, query, criteriaBuilder) -> {
+            if (number == null || number.isBlank()) {
+                return criteriaBuilder.conjunction();
+            }
+
+            return criteriaBuilder.like(
+                    criteriaBuilder.lower(root.get("cardNumber")),
+                    "%" + number.trim().toLowerCase() + "%"
+            );
+        };
+    }
 }

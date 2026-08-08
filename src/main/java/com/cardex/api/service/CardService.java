@@ -18,6 +18,7 @@ public interface CardService {
             int page,
             int size,
             String name,
+            String number,
             String collection,
             String rarity,
             CardLanguage language,
