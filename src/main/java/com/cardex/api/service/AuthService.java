@@ -3,6 +3,7 @@ package com.cardex.api.service;
 import com.cardex.api.dto.request.ChangePasswordRequest;
 import com.cardex.api.dto.request.LoginRequest;
 import com.cardex.api.dto.request.RegisterRequest;
+import com.cardex.api.dto.request.UpdateProfileRequest;
 import com.cardex.api.dto.response.AuthResponse;
 
 public interface AuthService {
@@ -14,4 +15,6 @@ public interface AuthService {
     AuthResponse getAuthenticatedUser();
 
     void changePassword(ChangePasswordRequest request);
+
+    AuthResponse updateProfile(UpdateProfileRequest request);
 }

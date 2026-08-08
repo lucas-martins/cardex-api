@@ -3,6 +3,7 @@ package com.cardex.api.controller;
 import com.cardex.api.dto.request.ChangePasswordRequest;
 import com.cardex.api.dto.request.LoginRequest;
 import com.cardex.api.dto.request.RegisterRequest;
+import com.cardex.api.dto.request.UpdateProfileRequest;
 import com.cardex.api.dto.response.AuthResponse;
 import com.cardex.api.service.AuthService;
 import jakarta.validation.Valid;
@@ -48,5 +49,14 @@ public class AuthController {
         authService.changePassword(request);
 
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<AuthResponse> updateProfile(
+            @Valid @RequestBody UpdateProfileRequest request
+    ) {
+        return ResponseEntity.ok(
+                authService.updateProfile(request)
+        );
     }
 }

@@ -3,6 +3,7 @@ package com.cardex.api.service.impl;
 import com.cardex.api.dto.request.ChangePasswordRequest;
 import com.cardex.api.dto.request.LoginRequest;
 import com.cardex.api.dto.request.RegisterRequest;
+import com.cardex.api.dto.request.UpdateProfileRequest;
 import com.cardex.api.dto.response.AuthResponse;
 import com.cardex.api.entity.UserEntity;
 import com.cardex.api.enumeration.UserRole;
@@ -265,5 +266,20 @@ class AuthServiceImplTest {
                 passwordEncoder,
                 never()
         ).encode(any(String.class));
+    }
+
+    @Test
+    void shouldUpdateProfileName() {
+        UpdateProfileRequest request =
+                new UpdateProfileRequest("  New Name  ");
+
+        when(authenticatedUserService.getAuthenticatedUser())
+                .thenReturn(user);
+
+        AuthResponse response =
+                authService.updateProfile(request);
+
+        assertEquals("New Name", user.getName());
+        assertEquals("New Name", response.name());
     }
 }

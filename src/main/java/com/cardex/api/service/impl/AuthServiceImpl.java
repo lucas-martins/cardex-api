@@ -3,6 +3,7 @@ package com.cardex.api.service.impl;
 import com.cardex.api.dto.request.ChangePasswordRequest;
 import com.cardex.api.dto.request.LoginRequest;
 import com.cardex.api.dto.request.RegisterRequest;
+import com.cardex.api.dto.request.UpdateProfileRequest;
 import com.cardex.api.dto.response.AuthResponse;
 import com.cardex.api.entity.UserEntity;
 import com.cardex.api.exception.EmailAlreadyRegisteredException;
@@ -113,5 +114,16 @@ public class AuthServiceImpl implements AuthService {
         user.setPassword(
                 passwordEncoder.encode(request.newPassword())
         );
+    }
+
+    @Override
+    @Transactional
+    public AuthResponse updateProfile(UpdateProfileRequest request) {
+        UserEntity user =
+                authenticatedUserService.getAuthenticatedUser();
+
+        user.setName(request.name().trim());
+
+        return toResponseWithoutToken(user);
     }
 }
