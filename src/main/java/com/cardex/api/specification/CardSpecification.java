@@ -74,4 +74,33 @@ public final class CardSpecification {
                         user
                 );
     }
+    public static Specification<CardEntity> collectionContains(
+            String collection
+    ) {
+        return (root, query, criteriaBuilder) -> {
+            if (collection == null || collection.isBlank()) {
+                return criteriaBuilder.conjunction();
+            }
+
+            return criteriaBuilder.like(
+                    criteriaBuilder.lower(root.get("collectionName")),
+                    "%" + collection.trim().toLowerCase() + "%"
+            );
+        };
+    }
+
+    public static Specification<CardEntity> rarityContains(
+            String rarity
+    ) {
+        return (root, query, criteriaBuilder) -> {
+            if (rarity == null || rarity.isBlank()) {
+                return criteriaBuilder.conjunction();
+            }
+
+            return criteriaBuilder.like(
+                    criteriaBuilder.lower(root.get("rarity")),
+                    "%" + rarity.trim().toLowerCase() + "%"
+            );
+        };
+    }
 }

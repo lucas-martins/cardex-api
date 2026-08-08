@@ -129,6 +129,8 @@ public class CardServiceImpl implements CardService {
             int page,
             int size,
             String name,
+            String collection,
+            String rarity,
             CardLanguage language,
             CardCondition condition,
             Boolean favorite,
@@ -145,6 +147,8 @@ public class CardServiceImpl implements CardService {
                 Specification
                         .where(CardSpecification.userEquals(authenticatedUser))
                         .and(CardSpecification.nameContains(name))
+                        .and(CardSpecification.collectionContains(collection))
+                        .and(CardSpecification.rarityContains(rarity))
                         .and(CardSpecification.languageEquals(language))
                         .and(CardSpecification.conditionEquals(condition))
                         .and(CardSpecification.favoriteEquals(favorite));

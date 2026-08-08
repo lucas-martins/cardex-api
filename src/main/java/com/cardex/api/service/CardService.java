@@ -18,6 +18,8 @@ public interface CardService {
             int page,
             int size,
             String name,
+            String collection,
+            String rarity,
             CardLanguage language,
             CardCondition condition,
             Boolean favorite,

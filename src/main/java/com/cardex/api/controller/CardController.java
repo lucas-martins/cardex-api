@@ -53,6 +53,12 @@ public class CardController {
             String name,
 
             @RequestParam(required = false)
+            String collection,
+
+            @RequestParam(required = false)
+            String rarity,
+
+            @RequestParam(required = false)
             CardLanguage language,
 
             @RequestParam(required = false)
@@ -69,6 +75,8 @@ public class CardController {
                         page,
                         size,
                         name,
+                        collection,
+                        rarity,
                         language,
                         condition,
                         favorite,
