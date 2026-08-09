@@ -1,10 +1,12 @@
 package com.cardex.api.service.impl;
 
+import com.cardex.api.component.CardHistoryRecorder;
 import com.cardex.api.dto.request.CreateCardRequest;
 import com.cardex.api.dto.response.CardResponse;
 import com.cardex.api.dto.request.UpdateCardRequest;
 import com.cardex.api.entity.CardEntity;
 import com.cardex.api.enumeration.CardCondition;
+import com.cardex.api.enumeration.CardHistoryAction;
 import com.cardex.api.enumeration.CardLanguage;
 import com.cardex.api.exception.CardNotFoundException;
 import com.cardex.api.exception.PokemonCardNotFoundException;
@@ -47,6 +49,9 @@ class CardServiceImplTest {
 
     @InjectMocks
     private CardServiceImpl cardService;
+
+    @Mock
+    private CardHistoryRecorder cardHistoryRecorder;
 
     private CardEntity cardEntity;
     private CardResponse cardResponse;
@@ -169,6 +174,11 @@ class CardServiceImplTest {
         verify(cardMapper).updateEntity(request, cardEntity);
         verify(cardRepository).save(cardEntity);
         verify(cardMapper).toResponse(cardEntity);
+        verify(cardHistoryRecorder).record(
+                eq(cardEntity),
+                eq(CardHistoryAction.UPDATED),
+                contains("Quantity changed from 1 to 3.")
+        );
     }
 
     @Test
@@ -254,6 +264,11 @@ class CardServiceImplTest {
         verify(cardMapper).toResponse(cardEntity);
         verify(authenticatedUserService).getAuthenticatedUser();
         verifyNoInteractions(pokemonTcgClient);
+        verify(cardHistoryRecorder).record(
+                cardEntity,
+                CardHistoryAction.UPDATED,
+                "Quantity changed from 3 to 5."
+        );
     }
 
     @Test
@@ -354,6 +369,11 @@ class CardServiceImplTest {
         verify(cardRepository).save(newCardEntity);
         verify(cardMapper).toResponse(newCardEntity);
         verify(authenticatedUserService).getAuthenticatedUser();
+        verify(cardHistoryRecorder).record(
+                newCardEntity,
+                CardHistoryAction.ADDED,
+                "Card added to collection."
+        );
     }
 
     @Test

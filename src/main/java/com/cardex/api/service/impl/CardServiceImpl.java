@@ -1,11 +1,13 @@
 package com.cardex.api.service.impl;
 
+import com.cardex.api.component.CardHistoryRecorder;
 import com.cardex.api.dto.request.CreateCardRequest;
 import com.cardex.api.dto.request.UpdateCardFavoriteRequest;
 import com.cardex.api.dto.request.UpdateCardRequest;
 import com.cardex.api.dto.response.*;
 import com.cardex.api.entity.CardEntity;
 import com.cardex.api.entity.UserEntity;
+import com.cardex.api.enumeration.CardHistoryAction;
 import com.cardex.api.service.AuthenticatedUserService;
 import com.cardex.api.enumeration.CardCondition;
 import com.cardex.api.enumeration.CardLanguage;
@@ -28,9 +30,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Sort;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -42,6 +42,7 @@ public class CardServiceImpl implements CardService {
     private final CardMapper cardMapper;
     private final PokemonTcgClient pokemonTcgClient;
     private final AuthenticatedUserService authenticatedUserService;
+    private final CardHistoryRecorder cardHistoryRecorder;
     private static final Set<String> ALLOWED_SORT_PROPERTIES = Set.of(
             "name",
             "collectionName",
@@ -77,12 +78,26 @@ public class CardServiceImpl implements CardService {
             CardEntity existingCard,
             CreateCardRequest request
     ) {
+        int previousQuantity =
+                existingCard.getQuantity();
+
         int updatedQuantity =
-                existingCard.getQuantity() + request.getQuantity();
+                previousQuantity + request.getQuantity();
 
         existingCard.setQuantity(updatedQuantity);
 
-        CardEntity updatedCard = cardRepository.save(existingCard);
+        CardEntity updatedCard =
+                cardRepository.save(existingCard);
+
+        cardHistoryRecorder.record(
+                updatedCard,
+                CardHistoryAction.UPDATED,
+                "Quantity changed from "
+                        + previousQuantity
+                        + " to "
+                        + updatedQuantity
+                        + "."
+        );
 
         return cardMapper.toResponse(updatedCard);
     }
@@ -119,6 +134,12 @@ public class CardServiceImpl implements CardService {
         );
 
         CardEntity savedCard = cardRepository.save(cardEntity);
+
+        cardHistoryRecorder.record(
+                savedCard,
+                CardHistoryAction.ADDED,
+                "Card added to collection."
+        );
 
         return cardMapper.toResponse(savedCard);
     }
@@ -183,9 +204,21 @@ public class CardServiceImpl implements CardService {
                 .findByIdAndUser(id, authenticatedUser)
                 .orElseThrow(() -> new CardNotFoundException(id));
 
+        String description =
+                buildUpdateDescription(cardEntity, request);
+
         cardMapper.updateEntity(request, cardEntity);
 
-        CardEntity updatedCard = cardRepository.save(cardEntity);
+        CardEntity updatedCard =
+                cardRepository.save(cardEntity);
+
+        if (!description.isBlank()) {
+            cardHistoryRecorder.record(
+                    updatedCard,
+                    CardHistoryAction.UPDATED,
+                    description
+            );
+        }
 
         return cardMapper.toResponse(updatedCard);
     }
@@ -199,6 +232,12 @@ public class CardServiceImpl implements CardService {
         CardEntity cardEntity = cardRepository
                 .findByIdAndUser(id, authenticatedUser)
                 .orElseThrow(() -> new CardNotFoundException(id));
+
+        cardHistoryRecorder.record(
+                cardEntity,
+                CardHistoryAction.REMOVED,
+                "Card removed from collection."
+        );
 
         cardRepository.delete(cardEntity);
     }
@@ -290,7 +329,24 @@ public class CardServiceImpl implements CardService {
 
         cardEntity.setFavorite(request.favorite());
 
-        CardEntity updatedCard = cardRepository.save(cardEntity);
+        CardEntity updatedCard =
+                cardRepository.save(cardEntity);
+
+        CardHistoryAction action =
+                updatedCard.isFavorite()
+                        ? CardHistoryAction.FAVORITED
+                        : CardHistoryAction.UNFAVORITED;
+
+        String description =
+                updatedCard.isFavorite()
+                        ? "Card marked as favorite."
+                        : "Card removed from favorites.";
+
+        cardHistoryRecorder.record(
+                updatedCard,
+                action,
+                description
+        );
 
         return cardMapper.toResponse(updatedCard);
     }
@@ -650,5 +706,48 @@ public class CardServiceImpl implements CardService {
         String secondSuffix = secondMatcher.group(3);
 
         return firstSuffix.compareToIgnoreCase(secondSuffix);
+    }
+
+    private String buildUpdateDescription(
+            CardEntity card,
+            UpdateCardRequest request
+    ) {
+        List<String> changes = new ArrayList<>();
+
+        if (!Objects.equals(card.getQuantity(), request.getQuantity())) {
+            changes.add(
+                    "Quantity changed from "
+                            + card.getQuantity()
+                            + " to "
+                            + request.getQuantity()
+                            + "."
+            );
+        }
+
+        if (!Objects.equals(card.getLanguage(), request.getLanguage())) {
+            changes.add(
+                    "Language changed from "
+                            + card.getLanguage()
+                            + " to "
+                            + request.getLanguage()
+                            + "."
+            );
+        }
+
+        if (!Objects.equals(card.getCondition(), request.getCondition())) {
+            changes.add(
+                    "Condition changed from "
+                            + card.getCondition()
+                            + " to "
+                            + request.getCondition()
+                            + "."
+            );
+        }
+
+        if (!Objects.equals(card.getNotes(), request.getNotes())) {
+            changes.add("Notes updated.");
+        }
+
+        return String.join(" ", changes);
     }
 }
