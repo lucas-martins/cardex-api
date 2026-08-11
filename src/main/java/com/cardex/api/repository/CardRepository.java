@@ -154,4 +154,9 @@ public interface CardRepository extends
             Long id,
             UserEntity user
     );
+
+    boolean existsByIdAndUser(
+            Long id,
+            UserEntity user
+    );
 }

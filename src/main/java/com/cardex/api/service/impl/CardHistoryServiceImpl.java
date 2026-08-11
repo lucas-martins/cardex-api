@@ -3,6 +3,7 @@ package com.cardex.api.service.impl;
 import com.cardex.api.dto.response.CardHistoryResponse;
 import com.cardex.api.entity.UserEntity;
 import com.cardex.api.repository.CardHistoryRepository;
+import com.cardex.api.repository.CardRepository;
 import com.cardex.api.service.AuthenticatedUserService;
 import com.cardex.api.service.CardHistoryService;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ public class CardHistoryServiceImpl
         implements CardHistoryService {
 
     private final CardHistoryRepository cardHistoryRepository;
+    private final CardRepository cardRepository;
     private final AuthenticatedUserService authenticatedUserService;
 
     @Override
@@ -44,16 +46,25 @@ public class CardHistoryServiceImpl
                         authenticatedUser,
                         pageable
                 )
-                .map(history ->
-                        new CardHistoryResponse(
-                                history.getId(),
-                                history.getCardId(),
-                                history.getExternalId(),
-                                history.getCardName(),
-                                history.getAction(),
-                                history.getDescription(),
-                                history.getCreatedAt()
-                        )
-                );
+                .map(history -> {
+
+                    boolean cardExists =
+                            history.getCardId() != null
+                                    && cardRepository.existsByIdAndUser(
+                                    history.getCardId(),
+                                    authenticatedUser
+                            );
+
+                    return new CardHistoryResponse(
+                            history.getId(),
+                            history.getCardId(),
+                            history.getExternalId(),
+                            history.getCardName(),
+                            history.getAction(),
+                            history.getDescription(),
+                            history.getCreatedAt(),
+                            cardExists
+                    );
+                });
     }
 }

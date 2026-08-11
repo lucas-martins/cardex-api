@@ -11,6 +11,7 @@ public record CardHistoryResponse(
         String cardName,
         CardHistoryAction action,
         String description,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        boolean cardExists
 ) {
 }
