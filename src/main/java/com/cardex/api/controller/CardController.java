@@ -170,4 +170,14 @@ public class CardController {
                 cardService.getCollectionDetails(collectionId)
         );
     }
+
+    @GetMapping("/collections/{collectionId}/checklist")
+    public ResponseEntity<CollectionChecklistResponse>
+    getCollectionChecklist(
+            @PathVariable String collectionId
+    ) {
+        return ResponseEntity.ok(
+                cardService.getCollectionChecklist(collectionId)
+        );
+    }
 }

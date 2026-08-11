@@ -8,6 +8,7 @@ import com.cardex.api.dto.response.*;
 import com.cardex.api.entity.CardEntity;
 import com.cardex.api.entity.UserEntity;
 import com.cardex.api.enumeration.CardHistoryAction;
+import com.cardex.api.pokemon.dto.PokemonCardApiResponse;
 import com.cardex.api.service.AuthenticatedUserService;
 import com.cardex.api.enumeration.CardCondition;
 import com.cardex.api.enumeration.CardLanguage;
@@ -33,6 +34,7 @@ import org.springframework.data.domain.Sort;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -653,6 +655,142 @@ public class CardServiceImpl implements CardService {
                 Math.round(completionPercentage * 100.0) / 100.0,
                 ownedCards
         );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CollectionChecklistResponse getCollectionChecklist(
+            String collectionId
+    ) {
+        UserEntity authenticatedUser =
+                authenticatedUserService.getAuthenticatedUser();
+
+        List<CardEntity> ownedCards =
+                cardRepository.findByUserAndCollectionId(
+                        authenticatedUser,
+                        collectionId
+                );
+
+        if (ownedCards.isEmpty()) {
+            throw new CollectionNotFoundException(collectionId);
+        }
+
+        Map<String, CardEntity> ownedCardsByExternalId =
+                ownedCards.stream()
+                        .collect(Collectors.toMap(
+                                CardEntity::getExternalId,
+                                card -> card,
+                                (first, second) -> first
+                        ));
+
+        List<PokemonCardApiData> collectionCards =
+                findAllPokemonCardsByCollection(collectionId);
+
+        if (collectionCards.isEmpty()) {
+            throw new CollectionNotFoundException(collectionId);
+        }
+
+        collectionCards.sort(
+                Comparator.comparing(
+                        PokemonCardApiData::number,
+                        this::compareCardNumbers
+                )
+        );
+
+        PokemonCardApiData firstPokemonCard =
+                collectionCards.get(0);
+
+        String collectionName =
+                firstPokemonCard.set() != null
+                        ? firstPokemonCard.set().name()
+                        : ownedCards.get(0).getCollectionName();
+
+        long ownedUniqueCards =
+                ownedCardsByExternalId.size();
+
+        long totalCards =
+                collectionCards.size();
+
+        double completionPercentage =
+                totalCards > 0
+                        ? (ownedUniqueCards * 100.0) / totalCards
+                        : 0.0;
+
+        List<CollectionChecklistCardResponse> cards =
+                collectionCards.stream()
+                        .map(pokemonCard -> {
+                            CardEntity ownedCard =
+                                    ownedCardsByExternalId.get(
+                                            pokemonCard.id()
+                                    );
+
+                            return new CollectionChecklistCardResponse(
+                                    pokemonCard.id(),
+                                    pokemonCard.name(),
+                                    pokemonCard.number(),
+                                    pokemonCard.rarity(),
+                                    pokemonCard.images() != null
+                                            ? pokemonCard.images().large()
+                                            : null,
+                                    ownedCard != null,
+                                    ownedCard != null
+                                            ? ownedCard.getId()
+                                            : null
+                            );
+                        })
+                        .toList();
+
+        return new CollectionChecklistResponse(
+                collectionId,
+                collectionName,
+                ownedUniqueCards,
+                totalCards,
+                Math.round(
+                        completionPercentage * 100.0
+                ) / 100.0,
+                cards
+        );
+    }
+
+    private List<PokemonCardApiData> findAllPokemonCardsByCollection(
+            String collectionId
+    ) {
+        final int pageSize = 250;
+
+        List<PokemonCardApiData> cards =
+                new ArrayList<>();
+
+        int page = 1;
+
+        while (true) {
+            PokemonCardApiResponse response =
+                    pokemonTcgClient.searchBySetId(
+                            collectionId,
+                            page,
+                            pageSize
+                    );
+
+            if (response == null
+                    || response.data() == null
+                    || response.data().isEmpty()) {
+                break;
+            }
+
+            cards.addAll(response.data());
+
+            int totalCount =
+                    response.totalCount() != null
+                            ? response.totalCount()
+                            : cards.size();
+
+            if (cards.size() >= totalCount) {
+                break;
+            }
+
+            page++;
+        }
+
+        return cards;
     }
 
     private Comparator<CardEntity> cardNumberComparator() {

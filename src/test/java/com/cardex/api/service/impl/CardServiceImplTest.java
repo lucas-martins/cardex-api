@@ -4,18 +4,17 @@ import com.cardex.api.component.CardHistoryRecorder;
 import com.cardex.api.dto.request.CreateCardRequest;
 import com.cardex.api.dto.response.CardResponse;
 import com.cardex.api.dto.request.UpdateCardRequest;
+import com.cardex.api.dto.response.CollectionChecklistResponse;
 import com.cardex.api.entity.CardEntity;
 import com.cardex.api.enumeration.CardCondition;
 import com.cardex.api.enumeration.CardHistoryAction;
 import com.cardex.api.enumeration.CardLanguage;
 import com.cardex.api.exception.CardNotFoundException;
+import com.cardex.api.exception.CollectionNotFoundException;
 import com.cardex.api.exception.PokemonCardNotFoundException;
 import com.cardex.api.mapper.CardMapper;
 import com.cardex.api.pokemon.client.PokemonTcgClient;
-import com.cardex.api.pokemon.dto.PokemonCardApiData;
-import com.cardex.api.pokemon.dto.PokemonCardApiSingleResponse;
-import com.cardex.api.pokemon.dto.PokemonCardImagesApiData;
-import com.cardex.api.pokemon.dto.PokemonSetApiData;
+import com.cardex.api.pokemon.dto.*;
 import com.cardex.api.repository.CardRepository;
 import com.cardex.api.entity.UserEntity;
 import com.cardex.api.service.AuthenticatedUserService;
@@ -26,10 +25,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -417,5 +416,307 @@ class CardServiceImplTest {
         verify(pokemonTcgClient).findById("invalid-id");
         verify(cardRepository, never()).save(any(CardEntity.class));
         verify(authenticatedUserService).getAuthenticatedUser();
+    }
+
+    @Test
+    void shouldReturnCollectionChecklist() {
+        CardEntity ownedCard = new CardEntity();
+        ownedCard.setId(10L);
+        ownedCard.setExternalId("sm1-2");
+        ownedCard.setCollectionId("sm1");
+        ownedCard.setCollectionName("Sun & Moon");
+        ownedCard.setUser(user);
+
+        PokemonSetApiData set = new PokemonSetApiData(
+                "sm1",
+                "Sun & Moon",
+                "Sun & Moon",
+                149,
+                173
+        );
+
+        PokemonCardApiData caterpie = new PokemonCardApiData(
+                "sm1-1",
+                "Caterpie",
+                "1",
+                "Common",
+                set,
+                new PokemonCardImagesApiData(
+                        "caterpie-small",
+                        "caterpie-large"
+                )
+        );
+
+        PokemonCardApiData metapod = new PokemonCardApiData(
+                "sm1-2",
+                "Metapod",
+                "2",
+                "Uncommon",
+                set,
+                new PokemonCardImagesApiData(
+                        "metapod-small",
+                        "metapod-large"
+                )
+        );
+
+        PokemonCardApiResponse apiResponse =
+                new PokemonCardApiResponse(
+                        List.of(caterpie, metapod),
+                        1,
+                        250,
+                        2,
+                        2
+                );
+
+        when(authenticatedUserService.getAuthenticatedUser())
+                .thenReturn(user);
+
+        when(cardRepository.findByUserAndCollectionId(
+                user,
+                "sm1"
+        )).thenReturn(List.of(ownedCard));
+
+        when(pokemonTcgClient.searchBySetId(
+                "sm1",
+                1,
+                250
+        )).thenReturn(apiResponse);
+
+        CollectionChecklistResponse result =
+                cardService.getCollectionChecklist("sm1");
+
+        assertEquals("sm1", result.collectionId());
+        assertEquals("Sun & Moon", result.collectionName());
+        assertEquals(1L, result.ownedUniqueCards());
+        assertEquals(2L, result.totalCards());
+
+        assertFalse(result.cards().get(0).owned());
+        assertNull(result.cards().get(0).cardId());
+
+        assertTrue(result.cards().get(1).owned());
+        assertEquals(
+                10L,
+                result.cards().get(1).cardId()
+        );
+
+        verify(authenticatedUserService)
+                .getAuthenticatedUser();
+
+        verify(cardRepository)
+                .findByUserAndCollectionId(
+                        user,
+                        "sm1"
+                );
+
+        verify(pokemonTcgClient)
+                .searchBySetId(
+                        "sm1",
+                        1,
+                        250
+                );
+    }
+
+    @Test
+    void shouldCalculateCollectionChecklistPercentage() {
+        CardEntity ownedCard = new CardEntity();
+        ownedCard.setId(10L);
+        ownedCard.setExternalId("sm1-1");
+        ownedCard.setCollectionId("sm1");
+        ownedCard.setCollectionName("Sun & Moon");
+        ownedCard.setUser(user);
+
+        PokemonSetApiData set = new PokemonSetApiData(
+                "sm1",
+                "Sun & Moon",
+                "Sun & Moon",
+                149,
+                173
+        );
+
+        PokemonCardApiData firstCard =
+                new PokemonCardApiData(
+                        "sm1-1",
+                        "Caterpie",
+                        "1",
+                        "Common",
+                        set,
+                        null
+                );
+
+        PokemonCardApiData secondCard =
+                new PokemonCardApiData(
+                        "sm1-2",
+                        "Metapod",
+                        "2",
+                        "Uncommon",
+                        set,
+                        null
+                );
+
+        PokemonCardApiData thirdCard =
+                new PokemonCardApiData(
+                        "sm1-3",
+                        "Butterfree",
+                        "3",
+                        "Rare",
+                        set,
+                        null
+                );
+
+        PokemonCardApiResponse apiResponse =
+                new PokemonCardApiResponse(
+                        List.of(
+                                firstCard,
+                                secondCard,
+                                thirdCard
+                        ),
+                        1,
+                        250,
+                        3,
+                        3
+                );
+
+        when(authenticatedUserService.getAuthenticatedUser())
+                .thenReturn(user);
+
+        when(cardRepository.findByUserAndCollectionId(
+                user,
+                "sm1"
+        )).thenReturn(List.of(ownedCard));
+
+        when(pokemonTcgClient.searchBySetId(
+                "sm1",
+                1,
+                250
+        )).thenReturn(apiResponse);
+
+        CollectionChecklistResponse result =
+                cardService.getCollectionChecklist("sm1");
+
+        assertEquals(
+                33.33,
+                result.completionPercentage()
+        );
+    }
+
+    @Test
+    void shouldLoadAllCollectionChecklistPages() {
+        CardEntity ownedCard = new CardEntity();
+        ownedCard.setExternalId("sm1-1");
+        ownedCard.setCollectionId("sm1");
+        ownedCard.setCollectionName("Sun & Moon");
+        ownedCard.setUser(user);
+
+        PokemonSetApiData set = new PokemonSetApiData(
+                "sm1",
+                "Sun & Moon",
+                "Sun & Moon",
+                149,
+                300
+        );
+
+        PokemonCardApiData firstCard =
+                new PokemonCardApiData(
+                        "sm1-1",
+                        "Caterpie",
+                        "1",
+                        "Common",
+                        set,
+                        null
+                );
+
+        PokemonCardApiData secondCard =
+                new PokemonCardApiData(
+                        "sm1-251",
+                        "Example Card",
+                        "251",
+                        "Rare",
+                        set,
+                        null
+                );
+
+        PokemonCardApiResponse firstPage =
+                new PokemonCardApiResponse(
+                        List.of(firstCard),
+                        1,
+                        250,
+                        1,
+                        2
+                );
+
+        PokemonCardApiResponse secondPage =
+                new PokemonCardApiResponse(
+                        List.of(secondCard),
+                        2,
+                        250,
+                        1,
+                        2
+                );
+
+        when(authenticatedUserService.getAuthenticatedUser())
+                .thenReturn(user);
+
+        when(cardRepository.findByUserAndCollectionId(
+                user,
+                "sm1"
+        )).thenReturn(List.of(ownedCard));
+
+        when(pokemonTcgClient.searchBySetId(
+                "sm1",
+                1,
+                250
+        )).thenReturn(firstPage);
+
+        when(pokemonTcgClient.searchBySetId(
+                "sm1",
+                2,
+                250
+        )).thenReturn(secondPage);
+
+        CollectionChecklistResponse result =
+                cardService.getCollectionChecklist("sm1");
+
+        assertEquals(2, result.cards().size());
+
+        verify(pokemonTcgClient)
+                .searchBySetId(
+                        "sm1",
+                        1,
+                        250
+                );
+
+        verify(pokemonTcgClient)
+                .searchBySetId(
+                        "sm1",
+                        2,
+                        250
+                );
+    }
+
+    @Test
+    void shouldThrowExceptionWhenCollectionChecklistDoesNotExist() {
+        when(authenticatedUserService.getAuthenticatedUser())
+                .thenReturn(user);
+
+        when(cardRepository.findByUserAndCollectionId(
+                user,
+                "invalid"
+        )).thenReturn(List.of());
+
+        CollectionNotFoundException exception =
+                assertThrows(
+                        CollectionNotFoundException.class,
+                        () -> cardService
+                                .getCollectionChecklist(
+                                        "invalid"
+                                )
+                );
+
+        assertEquals(
+                "Collection not found for ID: invalid",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(pokemonTcgClient);
     }
 }

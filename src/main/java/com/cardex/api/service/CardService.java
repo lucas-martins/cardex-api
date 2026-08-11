@@ -49,4 +49,8 @@ public interface CardService {
     RefreshCardMetadataResponse refreshMetadata();
 
     CollectionDetailsResponse getCollectionDetails(String collectionId);
+
+    CollectionChecklistResponse getCollectionChecklist(
+            String collectionId
+    );
 }

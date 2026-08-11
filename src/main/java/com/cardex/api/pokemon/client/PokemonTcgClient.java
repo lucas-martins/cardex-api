@@ -5,6 +5,7 @@ import com.cardex.api.exception.PokemonTcgApiUnavailableException;
 import com.cardex.api.pokemon.dto.PokemonCardApiResponse;
 import com.cardex.api.pokemon.dto.PokemonCardApiSingleResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -58,5 +59,32 @@ public class PokemonTcgClient {
                         }
                 )
                 .body(PokemonCardApiSingleResponse.class);
+    }
+
+    public PokemonCardApiResponse searchBySetId(
+            String collectionId,
+            int page,
+            int pageSize
+    ) {
+        return pokemonTcgRestClient
+                .get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/cards")
+                        .queryParam(
+                                "q",
+                                "set.id:" + collectionId
+                        )
+                        .queryParam("page", page)
+                        .queryParam("pageSize", pageSize)
+                        .queryParam("select", SELECTED_FIELDS)
+                        .build())
+                .retrieve()
+                .onStatus(
+                        HttpStatusCode::is5xxServerError,
+                        (request, response) -> {
+                            throw new PokemonTcgApiUnavailableException();
+                        }
+                )
+                .body(PokemonCardApiResponse.class);
     }
 }
