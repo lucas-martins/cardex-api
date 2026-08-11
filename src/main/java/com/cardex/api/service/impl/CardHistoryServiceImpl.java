@@ -1,7 +1,9 @@
 package com.cardex.api.service.impl;
 
 import com.cardex.api.dto.response.CardHistoryResponse;
+import com.cardex.api.entity.CardHistoryEntity;
 import com.cardex.api.entity.UserEntity;
+import com.cardex.api.enumeration.CardHistoryAction;
 import com.cardex.api.repository.CardHistoryRepository;
 import com.cardex.api.repository.CardRepository;
 import com.cardex.api.service.AuthenticatedUserService;
@@ -27,7 +29,8 @@ public class CardHistoryServiceImpl
     @Transactional(readOnly = true)
     public Page<CardHistoryResponse> findAll(
             int page,
-            int size
+            int size,
+            CardHistoryAction action
     ) {
         UserEntity authenticatedUser =
                 authenticatedUserService.getAuthenticatedUser();
@@ -41,30 +44,40 @@ public class CardHistoryServiceImpl
                 )
         );
 
-        return cardHistoryRepository
-                .findByUser(
-                        authenticatedUser,
-                        pageable
-                )
-                .map(history -> {
+        Page<CardHistoryEntity> historyPage;
 
-                    boolean cardExists =
-                            history.getCardId() != null
-                                    && cardRepository.existsByIdAndUser(
-                                    history.getCardId(),
-                                    authenticatedUser
-                            );
+        if (action == null) {
+            historyPage = cardHistoryRepository.findByUser(
+                    authenticatedUser,
+                    pageable
+            );
+        } else {
+            historyPage = cardHistoryRepository.findByUserAndAction(
+                    authenticatedUser,
+                    action,
+                    pageable
+            );
+        }
 
-                    return new CardHistoryResponse(
-                            history.getId(),
+        return historyPage.map(history -> {
+
+            boolean cardExists =
+                    history.getCardId() != null
+                            && cardRepository.existsByIdAndUser(
                             history.getCardId(),
-                            history.getExternalId(),
-                            history.getCardName(),
-                            history.getAction(),
-                            history.getDescription(),
-                            history.getCreatedAt(),
-                            cardExists
+                            authenticatedUser
                     );
-                });
+
+            return new CardHistoryResponse(
+                    history.getId(),
+                    history.getCardId(),
+                    history.getExternalId(),
+                    history.getCardName(),
+                    history.getAction(),
+                    history.getDescription(),
+                    history.getCreatedAt(),
+                    cardExists
+            );
+        });
     }
 }

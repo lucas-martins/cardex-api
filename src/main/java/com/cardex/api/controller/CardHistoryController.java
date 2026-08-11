@@ -1,6 +1,7 @@
 package com.cardex.api.controller;
 
 import com.cardex.api.dto.response.CardHistoryResponse;
+import com.cardex.api.enumeration.CardHistoryAction;
 import com.cardex.api.service.CardHistoryService;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -27,12 +28,16 @@ public class CardHistoryController {
             @RequestParam(defaultValue = "20")
             @Min(value = 1, message = "Size must be at least 1")
             @Max(value = 100, message = "Size must not exceed 100")
-            int size
+            int size,
+
+            @RequestParam(required = false)
+            CardHistoryAction action
     ) {
         return ResponseEntity.ok(
                 cardHistoryService.findAll(
                         page,
-                        size
+                        size,
+                        action
                 )
         );
     }
