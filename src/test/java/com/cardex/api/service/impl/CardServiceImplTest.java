@@ -6,6 +6,7 @@ import com.cardex.api.dto.response.CardResponse;
 import com.cardex.api.dto.request.UpdateCardRequest;
 import com.cardex.api.dto.response.CollectionChecklistResponse;
 import com.cardex.api.entity.CardEntity;
+import com.cardex.api.entity.PokemonCardCatalogEntity;
 import com.cardex.api.enumeration.CardCondition;
 import com.cardex.api.enumeration.CardHistoryAction;
 import com.cardex.api.enumeration.CardLanguage;
@@ -18,6 +19,7 @@ import com.cardex.api.pokemon.dto.*;
 import com.cardex.api.repository.CardRepository;
 import com.cardex.api.entity.UserEntity;
 import com.cardex.api.service.AuthenticatedUserService;
+import com.cardex.api.service.PokemonCardCatalogService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -51,6 +53,9 @@ class CardServiceImplTest {
 
     @Mock
     private CardHistoryRecorder cardHistoryRecorder;
+
+    @Mock
+    private PokemonCardCatalogService pokemonCardCatalogService;
 
     private CardEntity cardEntity;
     private CardResponse cardResponse;
@@ -427,46 +432,27 @@ class CardServiceImplTest {
         ownedCard.setCollectionName("Sun & Moon");
         ownedCard.setUser(user);
 
-        PokemonSetApiData set = new PokemonSetApiData(
-                "sm1",
-                "Sun & Moon",
-                "Sun & Moon",
-                149,
-                173
-        );
+        PokemonCardCatalogEntity caterpie =
+                new PokemonCardCatalogEntity();
 
-        PokemonCardApiData caterpie = new PokemonCardApiData(
-                "sm1-1",
-                "Caterpie",
-                "1",
-                "Common",
-                set,
-                new PokemonCardImagesApiData(
-                        "caterpie-small",
-                        "caterpie-large"
-                )
-        );
+        caterpie.setExternalId("sm1-1");
+        caterpie.setName("Caterpie");
+        caterpie.setCardNumber("1");
+        caterpie.setRarity("Common");
+        caterpie.setCollectionId("sm1");
+        caterpie.setCollectionName("Sun & Moon");
+        caterpie.setImageUrl("caterpie-large");
 
-        PokemonCardApiData metapod = new PokemonCardApiData(
-                "sm1-2",
-                "Metapod",
-                "2",
-                "Uncommon",
-                set,
-                new PokemonCardImagesApiData(
-                        "metapod-small",
-                        "metapod-large"
-                )
-        );
+        PokemonCardCatalogEntity metapod =
+                new PokemonCardCatalogEntity();
 
-        PokemonCardApiResponse apiResponse =
-                new PokemonCardApiResponse(
-                        List.of(caterpie, metapod),
-                        1,
-                        250,
-                        2,
-                        2
-                );
+        metapod.setExternalId("sm1-2");
+        metapod.setName("Metapod");
+        metapod.setCardNumber("2");
+        metapod.setRarity("Uncommon");
+        metapod.setCollectionId("sm1");
+        metapod.setCollectionName("Sun & Moon");
+        metapod.setImageUrl("metapod-large");
 
         when(authenticatedUserService.getAuthenticatedUser())
                 .thenReturn(user);
@@ -476,11 +462,11 @@ class CardServiceImplTest {
                 "sm1"
         )).thenReturn(List.of(ownedCard));
 
-        when(pokemonTcgClient.searchBySetId(
-                "sm1",
-                1,
-                250
-        )).thenReturn(apiResponse);
+        when(pokemonCardCatalogService.findByCollectionId(
+                "sm1"
+        )).thenReturn(
+                List.of(caterpie, metapod)
+        );
 
         CollectionChecklistResponse result =
                 cardService.getCollectionChecklist("sm1");
@@ -508,12 +494,8 @@ class CardServiceImplTest {
                         "sm1"
                 );
 
-        verify(pokemonTcgClient)
-                .searchBySetId(
-                        "sm1",
-                        1,
-                        250
-                );
+        verify(pokemonCardCatalogService)
+                .findByCollectionId("sm1");
     }
 
     @Test
@@ -525,55 +507,28 @@ class CardServiceImplTest {
         ownedCard.setCollectionName("Sun & Moon");
         ownedCard.setUser(user);
 
-        PokemonSetApiData set = new PokemonSetApiData(
-                "sm1",
-                "Sun & Moon",
-                "Sun & Moon",
-                149,
-                173
-        );
-
-        PokemonCardApiData firstCard =
-                new PokemonCardApiData(
+        PokemonCardCatalogEntity firstCard =
+                createCatalogCard(
                         "sm1-1",
                         "Caterpie",
                         "1",
-                        "Common",
-                        set,
-                        null
+                        "Common"
                 );
 
-        PokemonCardApiData secondCard =
-                new PokemonCardApiData(
+        PokemonCardCatalogEntity secondCard =
+                createCatalogCard(
                         "sm1-2",
                         "Metapod",
                         "2",
-                        "Uncommon",
-                        set,
-                        null
+                        "Uncommon"
                 );
 
-        PokemonCardApiData thirdCard =
-                new PokemonCardApiData(
+        PokemonCardCatalogEntity thirdCard =
+                createCatalogCard(
                         "sm1-3",
                         "Butterfree",
                         "3",
-                        "Rare",
-                        set,
-                        null
-                );
-
-        PokemonCardApiResponse apiResponse =
-                new PokemonCardApiResponse(
-                        List.of(
-                                firstCard,
-                                secondCard,
-                                thirdCard
-                        ),
-                        1,
-                        250,
-                        3,
-                        3
+                        "Rare"
                 );
 
         when(authenticatedUserService.getAuthenticatedUser())
@@ -584,11 +539,15 @@ class CardServiceImplTest {
                 "sm1"
         )).thenReturn(List.of(ownedCard));
 
-        when(pokemonTcgClient.searchBySetId(
-                "sm1",
-                1,
-                250
-        )).thenReturn(apiResponse);
+        when(pokemonCardCatalogService.findByCollectionId(
+                "sm1"
+        )).thenReturn(
+                List.of(
+                        firstCard,
+                        secondCard,
+                        thirdCard
+                )
+        );
 
         CollectionChecklistResponse result =
                 cardService.getCollectionChecklist("sm1");
@@ -599,98 +558,23 @@ class CardServiceImplTest {
         );
     }
 
-    @Test
-    void shouldLoadAllCollectionChecklistPages() {
-        CardEntity ownedCard = new CardEntity();
-        ownedCard.setExternalId("sm1-1");
-        ownedCard.setCollectionId("sm1");
-        ownedCard.setCollectionName("Sun & Moon");
-        ownedCard.setUser(user);
+    private PokemonCardCatalogEntity createCatalogCard(
+            String externalId,
+            String name,
+            String cardNumber,
+            String rarity
+    ) {
+        PokemonCardCatalogEntity card =
+                new PokemonCardCatalogEntity();
 
-        PokemonSetApiData set = new PokemonSetApiData(
-                "sm1",
-                "Sun & Moon",
-                "Sun & Moon",
-                149,
-                300
-        );
+        card.setExternalId(externalId);
+        card.setName(name);
+        card.setCardNumber(cardNumber);
+        card.setRarity(rarity);
+        card.setCollectionId("sm1");
+        card.setCollectionName("Sun & Moon");
 
-        PokemonCardApiData firstCard =
-                new PokemonCardApiData(
-                        "sm1-1",
-                        "Caterpie",
-                        "1",
-                        "Common",
-                        set,
-                        null
-                );
-
-        PokemonCardApiData secondCard =
-                new PokemonCardApiData(
-                        "sm1-251",
-                        "Example Card",
-                        "251",
-                        "Rare",
-                        set,
-                        null
-                );
-
-        PokemonCardApiResponse firstPage =
-                new PokemonCardApiResponse(
-                        List.of(firstCard),
-                        1,
-                        250,
-                        1,
-                        2
-                );
-
-        PokemonCardApiResponse secondPage =
-                new PokemonCardApiResponse(
-                        List.of(secondCard),
-                        2,
-                        250,
-                        1,
-                        2
-                );
-
-        when(authenticatedUserService.getAuthenticatedUser())
-                .thenReturn(user);
-
-        when(cardRepository.findByUserAndCollectionId(
-                user,
-                "sm1"
-        )).thenReturn(List.of(ownedCard));
-
-        when(pokemonTcgClient.searchBySetId(
-                "sm1",
-                1,
-                250
-        )).thenReturn(firstPage);
-
-        when(pokemonTcgClient.searchBySetId(
-                "sm1",
-                2,
-                250
-        )).thenReturn(secondPage);
-
-        CollectionChecklistResponse result =
-                cardService.getCollectionChecklist("sm1");
-
-        assertEquals(2, result.cards().size());
-
-        verify(pokemonTcgClient)
-                .searchBySetId(
-                        "sm1",
-                        1,
-                        250
-                );
-
-        verify(pokemonTcgClient)
-                .searchBySetId(
-                        "sm1",
-                        2,
-                        250
-                );
+        return card;
     }
 
     @Test

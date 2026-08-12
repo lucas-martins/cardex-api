@@ -6,30 +6,31 @@ import com.cardex.api.dto.request.UpdateCardFavoriteRequest;
 import com.cardex.api.dto.request.UpdateCardRequest;
 import com.cardex.api.dto.response.*;
 import com.cardex.api.entity.CardEntity;
+import com.cardex.api.entity.PokemonCardCatalogEntity;
 import com.cardex.api.entity.UserEntity;
-import com.cardex.api.enumeration.CardHistoryAction;
-import com.cardex.api.pokemon.dto.PokemonCardApiResponse;
-import com.cardex.api.service.AuthenticatedUserService;
 import com.cardex.api.enumeration.CardCondition;
+import com.cardex.api.enumeration.CardHistoryAction;
 import com.cardex.api.enumeration.CardLanguage;
+import com.cardex.api.exception.CardNotFoundException;
 import com.cardex.api.exception.CollectionNotFoundException;
 import com.cardex.api.exception.PokemonCardNotFoundException;
-import com.cardex.api.exception.CardNotFoundException;
 import com.cardex.api.mapper.CardMapper;
 import com.cardex.api.pokemon.client.PokemonTcgClient;
 import com.cardex.api.pokemon.dto.PokemonCardApiData;
 import com.cardex.api.pokemon.dto.PokemonCardApiSingleResponse;
 import com.cardex.api.repository.CardRepository;
+import com.cardex.api.service.AuthenticatedUserService;
 import com.cardex.api.service.CardService;
+import com.cardex.api.service.PokemonCardCatalogService;
 import com.cardex.api.specification.CardSpecification;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.data.domain.Sort;
 
 import java.util.*;
 import java.util.regex.Matcher;
@@ -45,6 +46,8 @@ public class CardServiceImpl implements CardService {
     private final PokemonTcgClient pokemonTcgClient;
     private final AuthenticatedUserService authenticatedUserService;
     private final CardHistoryRecorder cardHistoryRecorder;
+    private final PokemonCardCatalogService pokemonCardCatalogService;
+
     private static final Set<String> ALLOWED_SORT_PROPERTIES = Set.of(
             "name",
             "collectionName",
@@ -56,6 +59,7 @@ public class CardServiceImpl implements CardService {
             "createdAt",
             "updatedAt"
     );
+
     private static final Pattern CARD_NUMBER_PATTERN =
             Pattern.compile("^([A-Za-z]*)(\\d+)(.*)$");
 
@@ -72,8 +76,10 @@ public class CardServiceImpl implements CardService {
                         request.getLanguage(),
                         request.getCondition()
                 )
-                .map(existingCard -> increaseQuantity(existingCard, request))
-                .orElseGet(() -> createNewCard(request, authenticatedUser));
+                .map(existingCard ->
+                        increaseQuantity(existingCard, request))
+                .orElseGet(() ->
+                        createNewCard(request, authenticatedUser));
     }
 
     private CardResponse increaseQuantity(
@@ -104,38 +110,68 @@ public class CardServiceImpl implements CardService {
         return cardMapper.toResponse(updatedCard);
     }
 
-    private CardResponse createNewCard(CreateCardRequest request, UserEntity authenticatedUser) {
+    private CardResponse createNewCard(
+            CreateCardRequest request,
+            UserEntity authenticatedUser
+    ) {
         PokemonCardApiSingleResponse apiResponse =
-                pokemonTcgClient.findById(request.getExternalId());
+                pokemonTcgClient.findById(
+                        request.getExternalId()
+                );
 
-        if (apiResponse == null || apiResponse.data() == null) {
-            throw new PokemonCardNotFoundException(request.getExternalId());
+        if (apiResponse == null
+                || apiResponse.data() == null) {
+            throw new PokemonCardNotFoundException(
+                    request.getExternalId()
+            );
         }
 
-        PokemonCardApiData pokemonCard = apiResponse.data();
+        PokemonCardApiData pokemonCard =
+                apiResponse.data();
 
-        CardEntity cardEntity = cardMapper.toEntity(request);
+        CardEntity cardEntity =
+                cardMapper.toEntity(request);
+
         cardEntity.setUser(authenticatedUser);
 
-        cardEntity.setName(pokemonCard.name());
+        cardEntity.setName(
+                pokemonCard.name()
+        );
+
         if (pokemonCard.set() != null) {
-            cardEntity.setCollectionId(pokemonCard.set().id());
-            cardEntity.setCollectionName(pokemonCard.set().name());
-            cardEntity.setCollectionTotal(pokemonCard.set().total());
+            cardEntity.setCollectionId(
+                    pokemonCard.set().id()
+            );
+
+            cardEntity.setCollectionName(
+                    pokemonCard.set().name()
+            );
+
+            cardEntity.setCollectionTotal(
+                    pokemonCard.set().total()
+            );
         } else {
             cardEntity.setCollectionId(null);
             cardEntity.setCollectionName(null);
             cardEntity.setCollectionTotal(null);
         }
-        cardEntity.setCardNumber(pokemonCard.number());
-        cardEntity.setRarity(pokemonCard.rarity());
+
+        cardEntity.setCardNumber(
+                pokemonCard.number()
+        );
+
+        cardEntity.setRarity(
+                pokemonCard.rarity()
+        );
+
         cardEntity.setImageUrl(
                 pokemonCard.images() != null
                         ? pokemonCard.images().large()
                         : null
         );
 
-        CardEntity savedCard = cardRepository.save(cardEntity);
+        CardEntity savedCard =
+                cardRepository.save(cardEntity);
 
         cardHistoryRecorder.record(
                 savedCard,
@@ -163,23 +199,64 @@ public class CardServiceImpl implements CardService {
         UserEntity authenticatedUser =
                 authenticatedUserService.getAuthenticatedUser();
 
-        Sort cardSort = buildSort(sort);
+        Sort cardSort =
+                buildSort(sort);
 
-        Pageable pageable = PageRequest.of(page, size, cardSort);
+        Pageable pageable =
+                PageRequest.of(
+                        page,
+                        size,
+                        cardSort
+                );
 
         Specification<CardEntity> specification =
                 Specification
-                        .where(CardSpecification.userEquals(authenticatedUser))
-                        .and(CardSpecification.nameContains(name))
-                        .and(CardSpecification.numberContains(number))
-                        .and(CardSpecification.collectionContains(collection))
-                        .and(CardSpecification.rarityContains(rarity))
-                        .and(CardSpecification.languageEquals(language))
-                        .and(CardSpecification.conditionEquals(condition))
-                        .and(CardSpecification.favoriteEquals(favorite));
+                        .where(
+                                CardSpecification.userEquals(
+                                        authenticatedUser
+                                )
+                        )
+                        .and(
+                                CardSpecification.nameContains(
+                                        name
+                                )
+                        )
+                        .and(
+                                CardSpecification.numberContains(
+                                        number
+                                )
+                        )
+                        .and(
+                                CardSpecification.collectionContains(
+                                        collection
+                                )
+                        )
+                        .and(
+                                CardSpecification.rarityContains(
+                                        rarity
+                                )
+                        )
+                        .and(
+                                CardSpecification.languageEquals(
+                                        language
+                                )
+                        )
+                        .and(
+                                CardSpecification.conditionEquals(
+                                        condition
+                                )
+                        )
+                        .and(
+                                CardSpecification.favoriteEquals(
+                                        favorite
+                                )
+                        );
 
         return cardRepository
-                .findAll(specification, pageable)
+                .findAll(
+                        specification,
+                        pageable
+                )
                 .map(cardMapper::toResponse);
     }
 
@@ -189,27 +266,50 @@ public class CardServiceImpl implements CardService {
         UserEntity authenticatedUser =
                 authenticatedUserService.getAuthenticatedUser();
 
-        CardEntity cardEntity = cardRepository
-                .findByIdAndUser(id, authenticatedUser)
-                .orElseThrow(() -> new CardNotFoundException(id));
+        CardEntity cardEntity =
+                cardRepository
+                        .findByIdAndUser(
+                                id,
+                                authenticatedUser
+                        )
+                        .orElseThrow(
+                                () ->
+                                        new CardNotFoundException(id)
+                        );
 
         return cardMapper.toResponse(cardEntity);
     }
 
     @Override
     @Transactional
-    public CardResponse update(Long id, UpdateCardRequest request) {
+    public CardResponse update(
+            Long id,
+            UpdateCardRequest request
+    ) {
         UserEntity authenticatedUser =
                 authenticatedUserService.getAuthenticatedUser();
 
-        CardEntity cardEntity = cardRepository
-                .findByIdAndUser(id, authenticatedUser)
-                .orElseThrow(() -> new CardNotFoundException(id));
+        CardEntity cardEntity =
+                cardRepository
+                        .findByIdAndUser(
+                                id,
+                                authenticatedUser
+                        )
+                        .orElseThrow(
+                                () ->
+                                        new CardNotFoundException(id)
+                        );
 
         String description =
-                buildUpdateDescription(cardEntity, request);
+                buildUpdateDescription(
+                        cardEntity,
+                        request
+                );
 
-        cardMapper.updateEntity(request, cardEntity);
+        cardMapper.updateEntity(
+                request,
+                cardEntity
+        );
 
         CardEntity updatedCard =
                 cardRepository.save(cardEntity);
@@ -231,9 +331,16 @@ public class CardServiceImpl implements CardService {
         UserEntity authenticatedUser =
                 authenticatedUserService.getAuthenticatedUser();
 
-        CardEntity cardEntity = cardRepository
-                .findByIdAndUser(id, authenticatedUser)
-                .orElseThrow(() -> new CardNotFoundException(id));
+        CardEntity cardEntity =
+                cardRepository
+                        .findByIdAndUser(
+                                id,
+                                authenticatedUser
+                        )
+                        .orElseThrow(
+                                () ->
+                                        new CardNotFoundException(id)
+                        );
 
         cardHistoryRecorder.record(
                 cardEntity,
@@ -250,31 +357,45 @@ public class CardServiceImpl implements CardService {
         UserEntity authenticatedUser =
                 authenticatedUserService.getAuthenticatedUser();
 
-        long uniqueCards = cardRepository.count(
-                CardSpecification.userEquals(authenticatedUser)
-        );
+        long uniqueCards =
+                cardRepository.count(
+                        CardSpecification.userEquals(
+                                authenticatedUser
+                        )
+                );
 
         Long totalQuantity =
-                cardRepository.sumTotalQuantity(authenticatedUser);
+                cardRepository.sumTotalQuantity(
+                        authenticatedUser
+                );
 
         long totalCards =
-                totalQuantity != null ? totalQuantity : 0L;
+                totalQuantity != null
+                        ? totalQuantity
+                        : 0L;
 
         long differentLanguages =
-                cardRepository.countDifferentLanguages(authenticatedUser);
+                cardRepository.countDifferentLanguages(
+                        authenticatedUser
+                );
 
         long differentCollections =
-                cardRepository.countDifferentCollections(authenticatedUser);
-
-        MostOwnedCardResponse mostOwnedCard = cardRepository
-                .findFirstByUserOrderByQuantityDescCreatedAtDesc(
+                cardRepository.countDifferentCollections(
                         authenticatedUser
-                )
-                .map(card -> new MostOwnedCardResponse(
-                        card.getName(),
-                        card.getQuantity()
-                ))
-                .orElse(null);
+                );
+
+        MostOwnedCardResponse mostOwnedCard =
+                cardRepository
+                        .findFirstByUserOrderByQuantityDescCreatedAtDesc(
+                                authenticatedUser
+                        )
+                        .map(card ->
+                                new MostOwnedCardResponse(
+                                        card.getName(),
+                                        card.getQuantity()
+                                )
+                        )
+                        .orElse(null);
 
         return new CollectionSummaryResponse(
                 uniqueCards,
@@ -286,28 +407,43 @@ public class CardServiceImpl implements CardService {
     }
 
     private Sort buildSort(String sort) {
-        if (sort == null || sort.isBlank()) {
+        if (sort == null
+                || sort.isBlank()) {
             return Sort.by(
-                    Sort.Order.asc("name").ignoreCase()
+                    Sort.Order
+                            .asc("name")
+                            .ignoreCase()
             );
         }
 
-        String[] sortParts = sort.split(",");
+        String[] sortParts =
+                sort.split(",");
 
-        String property = sortParts[0].trim();
+        String property =
+                sortParts[0].trim();
 
-        if (!ALLOWED_SORT_PROPERTIES.contains(property)) {
+        if (!ALLOWED_SORT_PROPERTIES.contains(
+                property
+        )) {
             property = "name";
         }
 
         Sort.Direction direction =
                 sortParts.length > 1
-                        ? Sort.Direction.fromOptionalString(
-                        sortParts[1].trim()
-                ).orElse(Sort.Direction.ASC)
+                        ? Sort.Direction
+                        .fromOptionalString(
+                                sortParts[1].trim()
+                        )
+                        .orElse(
+                                Sort.Direction.ASC
+                        )
                         : Sort.Direction.ASC;
 
-        Sort.Order order = new Sort.Order(direction, property);
+        Sort.Order order =
+                new Sort.Order(
+                        direction,
+                        property
+                );
 
         if ("name".equals(property)) {
             order = order.ignoreCase();
@@ -325,11 +461,20 @@ public class CardServiceImpl implements CardService {
         UserEntity authenticatedUser =
                 authenticatedUserService.getAuthenticatedUser();
 
-        CardEntity cardEntity = cardRepository
-                .findByIdAndUser(id, authenticatedUser)
-                .orElseThrow(() -> new CardNotFoundException(id));
+        CardEntity cardEntity =
+                cardRepository
+                        .findByIdAndUser(
+                                id,
+                                authenticatedUser
+                        )
+                        .orElseThrow(
+                                () ->
+                                        new CardNotFoundException(id)
+                        );
 
-        cardEntity.setFavorite(request.favorite());
+        cardEntity.setFavorite(
+                request.favorite()
+        );
 
         CardEntity updatedCard =
                 cardRepository.save(cardEntity);
@@ -361,42 +506,58 @@ public class CardServiceImpl implements CardService {
 
         List<CollectionAnalyticsItemResponse> collections =
                 cardRepository
-                        .findQuantityGroupedByCollection(authenticatedUser)
+                        .findQuantityGroupedByCollection(
+                                authenticatedUser
+                        )
                         .stream()
-                        .map(item -> new CollectionAnalyticsItemResponse(
-                                item.getName(),
-                                item.getQuantity()
-                        ))
+                        .map(item ->
+                                new CollectionAnalyticsItemResponse(
+                                        item.getName(),
+                                        item.getQuantity()
+                                )
+                        )
                         .toList();
 
         List<CollectionAnalyticsItemResponse> languages =
                 cardRepository
-                        .findQuantityGroupedByLanguage(authenticatedUser)
+                        .findQuantityGroupedByLanguage(
+                                authenticatedUser
+                        )
                         .stream()
-                        .map(item -> new CollectionAnalyticsItemResponse(
-                                item.getLanguage().name(),
-                                item.getQuantity()
-                        ))
+                        .map(item ->
+                                new CollectionAnalyticsItemResponse(
+                                        item.getLanguage().name(),
+                                        item.getQuantity()
+                                )
+                        )
                         .toList();
 
         List<CollectionAnalyticsItemResponse> conditions =
                 cardRepository
-                        .findQuantityGroupedByCondition(authenticatedUser)
+                        .findQuantityGroupedByCondition(
+                                authenticatedUser
+                        )
                         .stream()
-                        .map(item -> new CollectionAnalyticsItemResponse(
-                                item.getCondition().name(),
-                                item.getQuantity()
-                        ))
+                        .map(item ->
+                                new CollectionAnalyticsItemResponse(
+                                        item.getCondition().name(),
+                                        item.getQuantity()
+                                )
+                        )
                         .toList();
 
         List<CollectionAnalyticsItemResponse> rarities =
                 cardRepository
-                        .findQuantityGroupedByRarity(authenticatedUser)
+                        .findQuantityGroupedByRarity(
+                                authenticatedUser
+                        )
                         .stream()
-                        .map(item -> new CollectionAnalyticsItemResponse(
-                                item.getRarity(),
-                                item.getQuantity()
-                        ))
+                        .map(item ->
+                                new CollectionAnalyticsItemResponse(
+                                        item.getRarity(),
+                                        item.getQuantity()
+                                )
+                        )
                         .toList();
 
         return new CollectionAnalyticsResponse(
@@ -413,93 +574,111 @@ public class CardServiceImpl implements CardService {
         UserEntity authenticatedUser =
                 authenticatedUserService.getAuthenticatedUser();
 
-        long uniqueCards = cardRepository.count(
-                CardSpecification.userEquals(authenticatedUser)
-        );
+        long uniqueCards =
+                cardRepository.count(
+                        CardSpecification.userEquals(
+                                authenticatedUser
+                        )
+                );
 
         Long totalQuantity =
-                cardRepository.sumTotalQuantity(authenticatedUser);
-
-        long totalCards =
-                totalQuantity != null ? totalQuantity : 0L;
-
-        long differentLanguages =
-                cardRepository.countDifferentLanguages(authenticatedUser);
-
-        long differentCollections =
-                cardRepository.countDifferentCollections(authenticatedUser);
-
-        boolean hasFavorite =
-                cardRepository.existsByUserAndFavoriteTrue(
+                cardRepository.sumTotalQuantity(
                         authenticatedUser
                 );
 
+        long totalCards =
+                totalQuantity != null
+                        ? totalQuantity
+                        : 0L;
+
+        long differentLanguages =
+                cardRepository.countDifferentLanguages(
+                        authenticatedUser
+                );
+
+        long differentCollections =
+                cardRepository.countDifferentCollections(
+                        authenticatedUser
+                );
+
+        boolean hasFavorite =
+                cardRepository
+                        .existsByUserAndFavoriteTrue(
+                                authenticatedUser
+                        );
+
         long rareCards =
-                cardRepository.countRareCards(authenticatedUser);
+                cardRepository.countRareCards(
+                        authenticatedUser
+                );
 
-        List<CollectionGoalResponse> goals = List.of(
-                createGoal(
-                        "FIRST_CARD",
-                        "First card",
-                        "Add your first card to the collection.",
-                        totalCards,
-                        1
-                ),
-                createGoal(
-                        "TEN_CARDS",
-                        "10 cards collected",
-                        "Reach a total of 10 cards.",
-                        totalCards,
-                        10
-                ),
-                createGoal(
-                        "FIFTY_CARDS",
-                        "50 cards collected",
-                        "Reach a total of 50 cards.",
-                        totalCards,
-                        50
-                ),
-                createGoal(
-                        "ONE_HUNDRED_CARDS",
-                        "100 cards collected",
-                        "Reach a total of 100 cards.",
-                        totalCards,
-                        100
-                ),
-                createGoal(
-                        "FIRST_FAVORITE",
-                        "First favorite",
-                        "Mark your first card as favorite.",
-                        hasFavorite ? 1 : 0,
-                        1
-                ),
-                createGoal(
-                        "FIVE_COLLECTIONS",
-                        "5 different collections",
-                        "Own cards from at least 5 different collections.",
-                        differentCollections,
-                        5
-                ),
-                createGoal(
-                        "THREE_LANGUAGES",
-                        "3 different languages",
-                        "Own cards in at least 3 different languages.",
-                        differentLanguages,
-                        3
-                ),
-                createGoal(
-                        "FIRST_RARE_CARD",
-                        "First rare card",
-                        "Add your first rare card to the collection.",
-                        rareCards,
-                        1
-                )
-        );
+        List<CollectionGoalResponse> goals =
+                List.of(
+                        createGoal(
+                                "FIRST_CARD",
+                                "First card",
+                                "Add your first card to the collection.",
+                                totalCards,
+                                1
+                        ),
+                        createGoal(
+                                "TEN_CARDS",
+                                "10 cards collected",
+                                "Reach a total of 10 cards.",
+                                totalCards,
+                                10
+                        ),
+                        createGoal(
+                                "FIFTY_CARDS",
+                                "50 cards collected",
+                                "Reach a total of 50 cards.",
+                                totalCards,
+                                50
+                        ),
+                        createGoal(
+                                "ONE_HUNDRED_CARDS",
+                                "100 cards collected",
+                                "Reach a total of 100 cards.",
+                                totalCards,
+                                100
+                        ),
+                        createGoal(
+                                "FIRST_FAVORITE",
+                                "First favorite",
+                                "Mark your first card as favorite.",
+                                hasFavorite ? 1 : 0,
+                                1
+                        ),
+                        createGoal(
+                                "FIVE_COLLECTIONS",
+                                "5 different collections",
+                                "Own cards from at least 5 different collections.",
+                                differentCollections,
+                                5
+                        ),
+                        createGoal(
+                                "THREE_LANGUAGES",
+                                "3 different languages",
+                                "Own cards in at least 3 different languages.",
+                                differentLanguages,
+                                3
+                        ),
+                        createGoal(
+                                "FIRST_RARE_CARD",
+                                "First rare card",
+                                "Add your first rare card to the collection.",
+                                rareCards,
+                                1
+                        )
+                );
 
-        long completedGoals = goals
-                .stream()
-                .filter(CollectionGoalResponse::completed)
-                .count();
+        long completedGoals =
+                goals
+                        .stream()
+                        .filter(
+                                CollectionGoalResponse::completed
+                        )
+                        .count();
 
         return new CollectionGoalsResponse(
                 completedGoals,
@@ -519,7 +698,10 @@ public class CardServiceImpl implements CardService {
                 code,
                 title,
                 description,
-                Math.min(currentValue, targetValue),
+                Math.min(
+                        currentValue,
+                        targetValue
+                ),
                 targetValue,
                 currentValue >= targetValue
         );
@@ -527,20 +709,27 @@ public class CardServiceImpl implements CardService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<CollectionProgressResponse> getCollectionProgress() {
+    public List<CollectionProgressResponse>
+    getCollectionProgress() {
         UserEntity authenticatedUser =
                 authenticatedUserService.getAuthenticatedUser();
 
         return cardRepository
-                .findCollectionProgress(authenticatedUser)
+                .findCollectionProgress(
+                        authenticatedUser
+                )
                 .stream()
                 .map(item -> {
-                    long ownedCards = item.getOwnedCards();
-                    long totalCards = item.getCollectionTotal();
+                    long ownedCards =
+                            item.getOwnedCards();
+
+                    long totalCards =
+                            item.getCollectionTotal();
 
                     double completionPercentage =
                             totalCards > 0
-                                    ? (ownedCards * 100.0) / totalCards
+                                    ? (ownedCards * 100.0)
+                                      / totalCards
                                     : 0.0;
 
                     return new CollectionProgressResponse(
@@ -548,7 +737,10 @@ public class CardServiceImpl implements CardService {
                             item.getCollectionName(),
                             ownedCards,
                             totalCards,
-                            Math.round(completionPercentage * 100.0) / 100.0
+                            Math.round(
+                                    completionPercentage
+                                            * 100.0
+                            ) / 100.0
                     );
                 })
                 .toList();
@@ -557,35 +749,40 @@ public class CardServiceImpl implements CardService {
     @Override
     @Transactional
     public RefreshCardMetadataResponse refreshMetadata() {
-        List<CardEntity> cards = cardRepository.findAll();
+        List<CardEntity> cards =
+                cardRepository.findAll();
 
         long processed = 0;
         long updated = 0;
 
         for (CardEntity card : cards) {
-
             processed++;
 
-            if (card.getCollectionId() != null &&
-                    card.getCollectionTotal() != null) {
+            if (card.getCollectionId() != null
+                    && card.getCollectionTotal() != null) {
                 continue;
             }
 
             PokemonCardApiSingleResponse response =
-                    pokemonTcgClient.findById(card.getExternalId());
+                    pokemonTcgClient.findById(
+                            card.getExternalId()
+                    );
 
-            PokemonCardApiData pokemonCard = response.data();
+            PokemonCardApiData pokemonCard =
+                    response.data();
 
             if (pokemonCard.set() != null) {
-
                 card.setCollectionId(
-                        pokemonCard.set().id());
+                        pokemonCard.set().id()
+                );
 
                 card.setCollectionName(
-                        pokemonCard.set().name());
+                        pokemonCard.set().name()
+                );
 
                 card.setCollectionTotal(
-                        pokemonCard.set().total());
+                        pokemonCard.set().total()
+                );
 
                 updated++;
             }
@@ -601,64 +798,85 @@ public class CardServiceImpl implements CardService {
 
     @Override
     @Transactional(readOnly = true)
-    public CollectionDetailsResponse getCollectionDetails(String collectionId) {
+    public CollectionDetailsResponse getCollectionDetails(
+            String collectionId
+    ) {
         UserEntity authenticatedUser =
                 authenticatedUserService.getAuthenticatedUser();
 
         List<CardEntity> cards =
-                cardRepository.findByUserAndCollectionId(
-                        authenticatedUser,
-                        collectionId
-                );
+                cardRepository
+                        .findByUserAndCollectionId(
+                                authenticatedUser,
+                                collectionId
+                        );
 
         if (cards.isEmpty()) {
-            throw new CollectionNotFoundException(collectionId);
+            throw new CollectionNotFoundException(
+                    collectionId
+            );
         }
 
-        cards.sort(cardNumberComparator());
+        cards.sort(
+                cardNumberComparator()
+        );
 
-        CardEntity firstCard = cards.get(0);
+        CardEntity firstCard =
+                cards.get(0);
 
-        long ownedUniqueCards = cards.stream()
-                .map(CardEntity::getExternalId)
-                .distinct()
-                .count();
+        long ownedUniqueCards =
+                cards
+                        .stream()
+                        .map(
+                                CardEntity::getExternalId
+                        )
+                        .distinct()
+                        .count();
 
-        long totalCards = firstCard.getCollectionTotal() != null
-                ? firstCard.getCollectionTotal()
-                : 0;
+        long totalCards =
+                firstCard.getCollectionTotal() != null
+                        ? firstCard.getCollectionTotal()
+                        : 0;
 
-        double completionPercentage = totalCards > 0
-                ? (ownedUniqueCards * 100.0) / totalCards
-                : 0.0;
+        double completionPercentage =
+                totalCards > 0
+                        ? (ownedUniqueCards * 100.0)
+                          / totalCards
+                        : 0.0;
 
-        List<CollectionOwnedCardResponse> ownedCards = cards.stream()
-                .map(card -> new CollectionOwnedCardResponse(
-                        card.getId(),
-                        card.getExternalId(),
-                        card.getName(),
-                        card.getCardNumber(),
-                        card.getRarity(),
-                        card.getImageUrl(),
-                        card.getQuantity(),
-                        card.getLanguage().name(),
-                        card.getCondition().name(),
-                        card.isFavorite()
-                ))
-                .toList();
+        List<CollectionOwnedCardResponse> ownedCards =
+                cards
+                        .stream()
+                        .map(card ->
+                                new CollectionOwnedCardResponse(
+                                        card.getId(),
+                                        card.getExternalId(),
+                                        card.getName(),
+                                        card.getCardNumber(),
+                                        card.getRarity(),
+                                        card.getImageUrl(),
+                                        card.getQuantity(),
+                                        card.getLanguage().name(),
+                                        card.getCondition().name(),
+                                        card.isFavorite()
+                                )
+                        )
+                        .toList();
 
         return new CollectionDetailsResponse(
                 firstCard.getCollectionId(),
                 firstCard.getCollectionName(),
                 ownedUniqueCards,
                 totalCards,
-                Math.round(completionPercentage * 100.0) / 100.0,
+                Math.round(
+                        completionPercentage * 100.0
+                ) / 100.0,
                 ownedCards
         );
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public CollectionChecklistResponse getCollectionChecklist(
             String collectionId
     ) {
@@ -666,44 +884,59 @@ public class CardServiceImpl implements CardService {
                 authenticatedUserService.getAuthenticatedUser();
 
         List<CardEntity> ownedCards =
-                cardRepository.findByUserAndCollectionId(
-                        authenticatedUser,
-                        collectionId
-                );
+                cardRepository
+                        .findByUserAndCollectionId(
+                                authenticatedUser,
+                                collectionId
+                        );
 
         if (ownedCards.isEmpty()) {
-            throw new CollectionNotFoundException(collectionId);
+            throw new CollectionNotFoundException(
+                    collectionId
+            );
         }
 
         Map<String, CardEntity> ownedCardsByExternalId =
-                ownedCards.stream()
-                        .collect(Collectors.toMap(
-                                CardEntity::getExternalId,
-                                card -> card,
-                                (first, second) -> first
-                        ));
+                ownedCards
+                        .stream()
+                        .collect(
+                                Collectors.toMap(
+                                        CardEntity::getExternalId,
+                                        card -> card,
+                                        (first, second) -> first
+                                )
+                        );
 
-        List<PokemonCardApiData> collectionCards =
-                findAllPokemonCardsByCollection(collectionId);
+        List<PokemonCardCatalogEntity> collectionCards =
+                new ArrayList<>(
+                        pokemonCardCatalogService
+                                .findByCollectionId(
+                                        collectionId
+                                )
+                );
 
         if (collectionCards.isEmpty()) {
-            throw new CollectionNotFoundException(collectionId);
+            throw new CollectionNotFoundException(
+                    collectionId
+            );
         }
 
         collectionCards.sort(
                 Comparator.comparing(
-                        PokemonCardApiData::number,
+                        PokemonCardCatalogEntity::getCardNumber,
                         this::compareCardNumbers
                 )
         );
 
-        PokemonCardApiData firstPokemonCard =
+        PokemonCardCatalogEntity firstCatalogCard =
                 collectionCards.get(0);
 
         String collectionName =
-                firstPokemonCard.set() != null
-                        ? firstPokemonCard.set().name()
-                        : ownedCards.get(0).getCollectionName();
+                firstCatalogCard.getCollectionName() != null
+                        ? firstCatalogCard.getCollectionName()
+                        : ownedCards
+                        .get(0)
+                        .getCollectionName();
 
         long ownedUniqueCards =
                 ownedCardsByExternalId.size();
@@ -713,25 +946,26 @@ public class CardServiceImpl implements CardService {
 
         double completionPercentage =
                 totalCards > 0
-                        ? (ownedUniqueCards * 100.0) / totalCards
+                        ? (ownedUniqueCards * 100.0)
+                          / totalCards
                         : 0.0;
 
         List<CollectionChecklistCardResponse> cards =
-                collectionCards.stream()
-                        .map(pokemonCard -> {
+                collectionCards
+                        .stream()
+                        .map(catalogCard -> {
                             CardEntity ownedCard =
                                     ownedCardsByExternalId.get(
-                                            pokemonCard.id()
+                                            catalogCard
+                                                    .getExternalId()
                                     );
 
                             return new CollectionChecklistCardResponse(
-                                    pokemonCard.id(),
-                                    pokemonCard.name(),
-                                    pokemonCard.number(),
-                                    pokemonCard.rarity(),
-                                    pokemonCard.images() != null
-                                            ? pokemonCard.images().large()
-                                            : null,
+                                    catalogCard.getExternalId(),
+                                    catalogCard.getName(),
+                                    catalogCard.getCardNumber(),
+                                    catalogCard.getRarity(),
+                                    catalogCard.getImageUrl(),
                                     ownedCard != null,
                                     ownedCard != null
                                             ? ownedCard.getId()
@@ -752,47 +986,6 @@ public class CardServiceImpl implements CardService {
         );
     }
 
-    private List<PokemonCardApiData> findAllPokemonCardsByCollection(
-            String collectionId
-    ) {
-        final int pageSize = 250;
-
-        List<PokemonCardApiData> cards =
-                new ArrayList<>();
-
-        int page = 1;
-
-        while (true) {
-            PokemonCardApiResponse response =
-                    pokemonTcgClient.searchBySetId(
-                            collectionId,
-                            page,
-                            pageSize
-                    );
-
-            if (response == null
-                    || response.data() == null
-                    || response.data().isEmpty()) {
-                break;
-            }
-
-            cards.addAll(response.data());
-
-            int totalCount =
-                    response.totalCount() != null
-                            ? response.totalCount()
-                            : cards.size();
-
-            if (cards.size() >= totalCount) {
-                break;
-            }
-
-            page++;
-        }
-
-        return cards;
-    }
-
     private Comparator<CardEntity> cardNumberComparator() {
         return Comparator.comparing(
                 CardEntity::getCardNumber,
@@ -800,8 +993,12 @@ public class CardServiceImpl implements CardService {
         );
     }
 
-    private int compareCardNumbers(String first, String second) {
-        if (first == null && second == null) {
+    private int compareCardNumbers(
+            String first,
+            String second
+    ) {
+        if (first == null
+                && second == null) {
             return 0;
         }
 
@@ -813,46 +1010,80 @@ public class CardServiceImpl implements CardService {
             return -1;
         }
 
-        Matcher firstMatcher = CARD_NUMBER_PATTERN.matcher(first);
-        Matcher secondMatcher = CARD_NUMBER_PATTERN.matcher(second);
+        Matcher firstMatcher =
+                CARD_NUMBER_PATTERN.matcher(
+                        first
+                );
 
-        if (!firstMatcher.matches() || !secondMatcher.matches()) {
-            return first.compareToIgnoreCase(second);
+        Matcher secondMatcher =
+                CARD_NUMBER_PATTERN.matcher(
+                        second
+                );
+
+        if (!firstMatcher.matches()
+                || !secondMatcher.matches()) {
+            return first.compareToIgnoreCase(
+                    second
+            );
         }
 
-        String firstPrefix = firstMatcher.group(1);
-        String secondPrefix = secondMatcher.group(1);
+        String firstPrefix =
+                firstMatcher.group(1);
+
+        String secondPrefix =
+                secondMatcher.group(1);
 
         int prefixComparison =
-                firstPrefix.compareToIgnoreCase(secondPrefix);
+                firstPrefix.compareToIgnoreCase(
+                        secondPrefix
+                );
 
         if (prefixComparison != 0) {
             return prefixComparison;
         }
 
-        long firstNumber = Long.parseLong(firstMatcher.group(2));
-        long secondNumber = Long.parseLong(secondMatcher.group(2));
+        long firstNumber =
+                Long.parseLong(
+                        firstMatcher.group(2)
+                );
+
+        long secondNumber =
+                Long.parseLong(
+                        secondMatcher.group(2)
+                );
 
         int numberComparison =
-                Long.compare(firstNumber, secondNumber);
+                Long.compare(
+                        firstNumber,
+                        secondNumber
+                );
 
         if (numberComparison != 0) {
             return numberComparison;
         }
 
-        String firstSuffix = firstMatcher.group(3);
-        String secondSuffix = secondMatcher.group(3);
+        String firstSuffix =
+                firstMatcher.group(3);
 
-        return firstSuffix.compareToIgnoreCase(secondSuffix);
+        String secondSuffix =
+                secondMatcher.group(3);
+
+        return firstSuffix.compareToIgnoreCase(
+                secondSuffix
+        );
     }
 
     private String buildUpdateDescription(
             CardEntity card,
             UpdateCardRequest request
     ) {
-        List<String> changes = new ArrayList<>();
+        List<String> changes =
+                new ArrayList<>();
 
-        if (!Objects.equals(card.getQuantity(), request.getQuantity())) {
+        if (!Objects.equals(
+                card.getQuantity(),
+                request.getQuantity()
+        )) {
             changes.add(
                     "Quantity changed from "
                             + card.getQuantity()
@@ -862,7 +1093,10 @@ public class CardServiceImpl implements CardService {
             );
         }
 
-        if (!Objects.equals(card.getLanguage(), request.getLanguage())) {
+        if (!Objects.equals(
+                card.getLanguage(),
+                request.getLanguage()
+        )) {
             changes.add(
                     "Language changed from "
                             + card.getLanguage()
@@ -872,7 +1106,10 @@ public class CardServiceImpl implements CardService {
             );
         }
 
-        if (!Objects.equals(card.getCondition(), request.getCondition())) {
+        if (!Objects.equals(
+                card.getCondition(),
+                request.getCondition()
+        )) {
             changes.add(
                     "Condition changed from "
                             + card.getCondition()
@@ -882,10 +1119,18 @@ public class CardServiceImpl implements CardService {
             );
         }
 
-        if (!Objects.equals(card.getNotes(), request.getNotes())) {
-            changes.add("Notes updated.");
+        if (!Objects.equals(
+                card.getNotes(),
+                request.getNotes()
+        )) {
+            changes.add(
+                    "Notes updated."
+            );
         }
 
-        return String.join(" ", changes);
+        return String.join(
+                " ",
+                changes
+        );
     }
 }
