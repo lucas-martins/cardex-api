@@ -1,5 +1,7 @@
 package com.cardex.api.dto.wishlist;
 
+import com.cardex.api.enumeration.WishlistPriority;
+
 import java.time.LocalDateTime;
 
 public record WishlistCardResponse(
@@ -12,6 +14,7 @@ public record WishlistCardResponse(
         String series,
         String rarity,
         String imageUrl,
+        WishlistPriority priority,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {

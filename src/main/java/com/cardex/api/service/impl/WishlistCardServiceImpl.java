@@ -1,16 +1,18 @@
 package com.cardex.api.service.impl;
 
+import com.cardex.api.dto.wishlist.UpdateWishlistPriorityRequest;
 import com.cardex.api.dto.wishlist.WishlistCardRequest;
 import com.cardex.api.dto.wishlist.WishlistCardResponse;
+import com.cardex.api.entity.PokemonCardCatalogEntity;
 import com.cardex.api.entity.UserEntity;
 import com.cardex.api.entity.WishlistCardEntity;
+import com.cardex.api.enumeration.WishlistPriority;
 import com.cardex.api.exception.WishlistCardAlreadyExistsException;
 import com.cardex.api.exception.WishlistCardNotFoundException;
 import com.cardex.api.mapper.WishlistCardMapper;
-import com.cardex.api.pokemon.client.PokemonTcgClient;
-import com.cardex.api.pokemon.dto.PokemonCardApiSingleResponse;
 import com.cardex.api.repository.WishlistCardRepository;
 import com.cardex.api.service.AuthenticatedUserService;
+import com.cardex.api.service.PokemonCardCatalogService;
 import com.cardex.api.service.WishlistCardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,17 +23,23 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Transactional
-public class WishlistCardServiceImpl implements WishlistCardService {
+public class WishlistCardServiceImpl
+        implements WishlistCardService {
 
     private final WishlistCardRepository repository;
     private final WishlistCardMapper mapper;
-    private final PokemonTcgClient pokemonTcgClient;
-    private final AuthenticatedUserService authenticatedUserService;
+    private final PokemonCardCatalogService
+            pokemonCardCatalogService;
+    private final AuthenticatedUserService
+            authenticatedUserService;
 
     @Override
-    public WishlistCardResponse create(WishlistCardRequest request) {
+    public WishlistCardResponse create(
+            WishlistCardRequest request
+    ) {
         UserEntity authenticatedUser =
-                authenticatedUserService.getAuthenticatedUser();
+                authenticatedUserService
+                        .getAuthenticatedUser();
 
         if (repository.existsByUserAndExternalId(
                 authenticatedUser,
@@ -42,34 +50,59 @@ public class WishlistCardServiceImpl implements WishlistCardService {
             );
         }
 
-        PokemonCardApiSingleResponse response =
-                pokemonTcgClient.findById(request.externalId());
+        PokemonCardCatalogEntity pokemonCard =
+                pokemonCardCatalogService
+                        .findByExternalId(
+                                request.externalId()
+                        );
 
-        var pokemonCard = response.data();
+        WishlistPriority priority =
+                request.priority() != null
+                        ? request.priority()
+                        : WishlistPriority.MEDIUM;
 
         WishlistCardEntity entity =
                 WishlistCardEntity.builder()
                         .user(authenticatedUser)
-                        .externalId(pokemonCard.id())
-                        .name(pokemonCard.name())
-                        .cardNumber(pokemonCard.number())
-                        .collectionId(pokemonCard.set().id())
-                        .collectionName(pokemonCard.set().name())
-                        .series(pokemonCard.set().series())
-                        .rarity(pokemonCard.rarity())
-                        .imageUrl(pokemonCard.images().large())
+                        .externalId(
+                                pokemonCard.getExternalId()
+                        )
+                        .name(
+                                pokemonCard.getName()
+                        )
+                        .cardNumber(
+                                pokemonCard.getCardNumber()
+                        )
+                        .collectionId(
+                                pokemonCard.getCollectionId()
+                        )
+                        .collectionName(
+                                pokemonCard.getCollectionName()
+                        )
+                        .series(
+                                pokemonCard.getCollectionSeries()
+                        )
+                        .rarity(
+                                pokemonCard.getRarity()
+                        )
+                        .imageUrl(
+                                pokemonCard.getImageUrl()
+                        )
+                        .priority(priority)
                         .build();
 
-        repository.save(entity);
+        WishlistCardEntity savedEntity =
+                repository.save(entity);
 
-        return mapper.toResponse(entity);
+        return mapper.toResponse(savedEntity);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<WishlistCardResponse> findAll() {
         UserEntity authenticatedUser =
-                authenticatedUserService.getAuthenticatedUser();
+                authenticatedUserService
+                        .getAuthenticatedUser();
 
         return repository
                 .findAllByUserOrderByCreatedAtDesc(
@@ -83,14 +116,53 @@ public class WishlistCardServiceImpl implements WishlistCardService {
     @Override
     public void delete(Long id) {
         UserEntity authenticatedUser =
-                authenticatedUserService.getAuthenticatedUser();
+                authenticatedUserService
+                        .getAuthenticatedUser();
 
-        WishlistCardEntity entity = repository
-                .findByIdAndUser(id, authenticatedUser)
-                .orElseThrow(() ->
-                        new WishlistCardNotFoundException(id)
-                );
+        WishlistCardEntity entity =
+                repository
+                        .findByIdAndUser(
+                                id,
+                                authenticatedUser
+                        )
+                        .orElseThrow(
+                                () ->
+                                        new WishlistCardNotFoundException(
+                                                id
+                                        )
+                        );
 
         repository.delete(entity);
+    }
+
+    @Override
+    public WishlistCardResponse updatePriority(
+            Long id,
+            UpdateWishlistPriorityRequest request
+    ) {
+        UserEntity authenticatedUser =
+                authenticatedUserService.getAuthenticatedUser();
+
+        WishlistCardEntity entity =
+                repository
+                        .findByIdAndUser(
+                                id,
+                                authenticatedUser
+                        )
+                        .orElseThrow(
+                                () ->
+                                        new WishlistCardNotFoundException(
+                                                id
+                                        )
+                        );
+
+        entity.setPriority(
+                request.priority()
+        );
+
+        WishlistCardEntity updatedEntity =
+                repository.save(entity);
+
+        return mapper.toResponse(updatedEntity);
     }
 }

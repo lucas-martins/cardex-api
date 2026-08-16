@@ -1,12 +1,7 @@
 package com.cardex.api.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
+import com.cardex.api.enumeration.WishlistPriority;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -59,4 +54,13 @@ public class WishlistCardEntity extends BaseEntity {
 
     @Column(name = "image_url", length = 1000)
     private String imageUrl;
+
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(
+            name = "priority",
+            nullable = false
+    )
+    private WishlistPriority priority =
+            WishlistPriority.MEDIUM;
 }

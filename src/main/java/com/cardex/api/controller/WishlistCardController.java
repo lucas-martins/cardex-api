@@ -1,6 +1,6 @@
 package com.cardex.api.controller;
 
-import com.cardex.api.dto.response.CardResponse;
+import com.cardex.api.dto.wishlist.UpdateWishlistPriorityRequest;
 import com.cardex.api.dto.wishlist.WishlistCardRequest;
 import com.cardex.api.dto.wishlist.WishlistCardResponse;
 import com.cardex.api.service.WishlistCardService;
@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -41,6 +42,19 @@ public class WishlistCardController {
     public ResponseEntity<List<WishlistCardResponse>> findAll() {
         return ResponseEntity.ok(
                 wishlistCardService.findAll()
+        );
+    }
+
+    @PatchMapping("/{id}/priority")
+    public ResponseEntity<WishlistCardResponse> updatePriority(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateWishlistPriorityRequest request
+    ) {
+        return ResponseEntity.ok(
+                wishlistCardService.updatePriority(
+                        id,
+                        request
+                )
         );
     }
 
