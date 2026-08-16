@@ -1,9 +1,11 @@
 package com.cardex.api.service.impl;
 
 import com.cardex.api.entity.PokemonCardCatalogEntity;
+import com.cardex.api.exception.PokemonCardNotFoundException;
 import com.cardex.api.pokemon.client.PokemonTcgClient;
 import com.cardex.api.pokemon.dto.PokemonCardApiData;
 import com.cardex.api.pokemon.dto.PokemonCardApiResponse;
+import com.cardex.api.pokemon.dto.PokemonCardApiSingleResponse;
 import com.cardex.api.repository.PokemonCardCatalogRepository;
 import com.cardex.api.service.PokemonCardCatalogService;
 import lombok.RequiredArgsConstructor;
@@ -48,6 +50,43 @@ public class PokemonCardCatalogServiceImpl
 
         return pokemonCardCatalogRepository
                 .saveAll(catalogCards);
+    }
+
+    @Override
+    @Transactional
+    public PokemonCardCatalogEntity findByExternalId(
+            String externalId
+    ) {
+        return pokemonCardCatalogRepository
+                .findByExternalId(externalId)
+                .orElseGet(() -> loadAndSaveByExternalId(
+                        externalId
+                ));
+    }
+
+    private PokemonCardCatalogEntity loadAndSaveByExternalId(
+            String externalId
+    ) {
+        PokemonCardApiSingleResponse response =
+                pokemonTcgClient.findById(
+                        externalId
+                );
+
+        if (response == null
+                || response.data() == null) {
+            throw new PokemonCardNotFoundException(
+                    externalId
+            );
+        }
+
+        PokemonCardCatalogEntity catalogCard =
+                toEntity(
+                        response.data()
+                );
+
+        return pokemonCardCatalogRepository.save(
+                catalogCard
+        );
     }
 
     private List<PokemonCardApiData> findAllByCollectionId(

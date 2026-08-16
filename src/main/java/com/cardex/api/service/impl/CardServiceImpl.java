@@ -13,11 +13,8 @@ import com.cardex.api.enumeration.CardHistoryAction;
 import com.cardex.api.enumeration.CardLanguage;
 import com.cardex.api.exception.CardNotFoundException;
 import com.cardex.api.exception.CollectionNotFoundException;
-import com.cardex.api.exception.PokemonCardNotFoundException;
 import com.cardex.api.mapper.CardMapper;
 import com.cardex.api.pokemon.client.PokemonTcgClient;
-import com.cardex.api.pokemon.dto.PokemonCardApiData;
-import com.cardex.api.pokemon.dto.PokemonCardApiSingleResponse;
 import com.cardex.api.repository.CardRepository;
 import com.cardex.api.service.AuthenticatedUserService;
 import com.cardex.api.service.CardService;
@@ -114,20 +111,10 @@ public class CardServiceImpl implements CardService {
             CreateCardRequest request,
             UserEntity authenticatedUser
     ) {
-        PokemonCardApiSingleResponse apiResponse =
-                pokemonTcgClient.findById(
+        PokemonCardCatalogEntity pokemonCard =
+                pokemonCardCatalogService.findByExternalId(
                         request.getExternalId()
                 );
-
-        if (apiResponse == null
-                || apiResponse.data() == null) {
-            throw new PokemonCardNotFoundException(
-                    request.getExternalId()
-            );
-        }
-
-        PokemonCardApiData pokemonCard =
-                apiResponse.data();
 
         CardEntity cardEntity =
                 cardMapper.toEntity(request);
@@ -135,39 +122,31 @@ public class CardServiceImpl implements CardService {
         cardEntity.setUser(authenticatedUser);
 
         cardEntity.setName(
-                pokemonCard.name()
+                pokemonCard.getName()
         );
 
-        if (pokemonCard.set() != null) {
-            cardEntity.setCollectionId(
-                    pokemonCard.set().id()
-            );
+        cardEntity.setCollectionId(
+                pokemonCard.getCollectionId()
+        );
 
-            cardEntity.setCollectionName(
-                    pokemonCard.set().name()
-            );
+        cardEntity.setCollectionName(
+                pokemonCard.getCollectionName()
+        );
 
-            cardEntity.setCollectionTotal(
-                    pokemonCard.set().total()
-            );
-        } else {
-            cardEntity.setCollectionId(null);
-            cardEntity.setCollectionName(null);
-            cardEntity.setCollectionTotal(null);
-        }
+        cardEntity.setCollectionTotal(
+                pokemonCard.getCollectionTotal()
+        );
 
         cardEntity.setCardNumber(
-                pokemonCard.number()
+                pokemonCard.getCardNumber()
         );
 
         cardEntity.setRarity(
-                pokemonCard.rarity()
+                pokemonCard.getRarity()
         );
 
         cardEntity.setImageUrl(
-                pokemonCard.images() != null
-                        ? pokemonCard.images().large()
-                        : null
+                pokemonCard.getImageUrl()
         );
 
         CardEntity savedCard =
@@ -763,29 +742,24 @@ public class CardServiceImpl implements CardService {
                 continue;
             }
 
-            PokemonCardApiSingleResponse response =
-                    pokemonTcgClient.findById(
+            PokemonCardCatalogEntity catalogCard =
+                    pokemonCardCatalogService.findByExternalId(
                             card.getExternalId()
                     );
 
-            PokemonCardApiData pokemonCard =
-                    response.data();
+            card.setCollectionId(
+                    catalogCard.getCollectionId()
+            );
 
-            if (pokemonCard.set() != null) {
-                card.setCollectionId(
-                        pokemonCard.set().id()
-                );
+            card.setCollectionName(
+                    catalogCard.getCollectionName()
+            );
 
-                card.setCollectionName(
-                        pokemonCard.set().name()
-                );
+            card.setCollectionTotal(
+                    catalogCard.getCollectionTotal()
+            );
 
-                card.setCollectionTotal(
-                        pokemonCard.set().total()
-                );
-
-                updated++;
-            }
+            updated++;
         }
 
         cardRepository.saveAll(cards);

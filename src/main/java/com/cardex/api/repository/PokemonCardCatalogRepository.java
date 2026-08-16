@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface PokemonCardCatalogRepository
@@ -14,4 +15,8 @@ public interface PokemonCardCatalogRepository
     findByCollectionId(String collectionId);
 
     boolean existsByCollectionId(String collectionId);
+
+    Optional<PokemonCardCatalogEntity> findByExternalId(
+            String externalId
+    );
 }

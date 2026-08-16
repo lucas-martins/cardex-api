@@ -9,4 +9,8 @@ public interface PokemonCardCatalogService {
     List<PokemonCardCatalogEntity> findByCollectionId(
             String collectionId
     );
+
+    PokemonCardCatalogEntity findByExternalId(
+            String externalId
+    );
 }
