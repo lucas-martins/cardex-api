@@ -7,7 +7,10 @@ import com.cardex.api.pokemon.dto.PokemonCardApiSingleResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
+
+import java.util.function.Supplier;
 
 @Component
 @RequiredArgsConstructor
@@ -15,6 +18,10 @@ public class PokemonTcgClient {
 
     private static final String SELECTED_FIELDS =
             "id,name,number,rarity,set,images";
+
+    private static final int MAX_ATTEMPTS = 3;
+
+    private static final long RETRY_DELAY_MILLISECONDS = 500L;
 
     private final RestClient pokemonTcgRestClient;
 
@@ -25,40 +32,78 @@ public class PokemonTcgClient {
     ) {
         String normalizedName = name.trim();
 
-        return pokemonTcgRestClient
-                .get()
-                .uri(uriBuilder -> uriBuilder
-                        .path("/cards")
-                        .queryParam("q", "name:*" + normalizedName + "*")
-                        .queryParam("page", page)
-                        .queryParam("pageSize", pageSize)
-                        .queryParam("select", SELECTED_FIELDS)
-                        .build())
-                .retrieve()
-                .onStatus(
-                        status -> status.is5xxServerError(),
-                        (request, response) -> {
-                            throw new PokemonTcgApiUnavailableException();
-                        }
-                )
-                .body(PokemonCardApiResponse.class);
+        return executeWithRetry(
+                () -> pokemonTcgRestClient
+                        .get()
+                        .uri(uriBuilder -> uriBuilder
+                                .path("/cards")
+                                .queryParam(
+                                        "q",
+                                        "name:*"
+                                                + normalizedName
+                                                + "*"
+                                )
+                                .queryParam(
+                                        "page",
+                                        page
+                                )
+                                .queryParam(
+                                        "pageSize",
+                                        pageSize
+                                )
+                                .queryParam(
+                                        "select",
+                                        SELECTED_FIELDS
+                                )
+                                .build()
+                        )
+                        .retrieve()
+                        .onStatus(
+                                HttpStatusCode::is5xxServerError,
+                                (request, response) -> {
+                                    throw new PokemonTcgApiUnavailableException();
+                                }
+                        )
+                        .body(
+                                PokemonCardApiResponse.class
+                        )
+        );
     }
 
-    public PokemonCardApiSingleResponse findById(String externalId) {
-        return pokemonTcgRestClient
-                .get()
-                .uri(uriBuilder -> uriBuilder
-                        .path("/cards/{id}")
-                        .queryParam("select", SELECTED_FIELDS)
-                        .build(externalId))
-                .retrieve()
-                .onStatus(
-                        status -> status.value() == 404,
-                        (request, response) -> {
-                            throw new PokemonCardNotFoundException(externalId);
-                        }
-                )
-                .body(PokemonCardApiSingleResponse.class);
+    public PokemonCardApiSingleResponse findById(
+            String externalId
+    ) {
+        return executeWithRetry(
+                () -> pokemonTcgRestClient
+                        .get()
+                        .uri(uriBuilder -> uriBuilder
+                                .path("/cards/{id}")
+                                .queryParam(
+                                        "select",
+                                        SELECTED_FIELDS
+                                )
+                                .build(externalId)
+                        )
+                        .retrieve()
+                        .onStatus(
+                                status ->
+                                        status.value() == 404,
+                                (request, response) -> {
+                                    throw new PokemonCardNotFoundException(
+                                            externalId
+                                    );
+                                }
+                        )
+                        .onStatus(
+                                HttpStatusCode::is5xxServerError,
+                                (request, response) -> {
+                                    throw new PokemonTcgApiUnavailableException();
+                                }
+                        )
+                        .body(
+                                PokemonCardApiSingleResponse.class
+                        )
+        );
     }
 
     public PokemonCardApiResponse searchBySetId(
@@ -66,25 +111,80 @@ public class PokemonTcgClient {
             int page,
             int pageSize
     ) {
-        return pokemonTcgRestClient
-                .get()
-                .uri(uriBuilder -> uriBuilder
-                        .path("/cards")
-                        .queryParam(
-                                "q",
-                                "set.id:" + collectionId
+        return executeWithRetry(
+                () -> pokemonTcgRestClient
+                        .get()
+                        .uri(uriBuilder -> uriBuilder
+                                .path("/cards")
+                                .queryParam(
+                                        "q",
+                                        "set.id:"
+                                                + collectionId
+                                )
+                                .queryParam(
+                                        "page",
+                                        page
+                                )
+                                .queryParam(
+                                        "pageSize",
+                                        pageSize
+                                )
+                                .queryParam(
+                                        "select",
+                                        SELECTED_FIELDS
+                                )
+                                .build()
                         )
-                        .queryParam("page", page)
-                        .queryParam("pageSize", pageSize)
-                        .queryParam("select", SELECTED_FIELDS)
-                        .build())
-                .retrieve()
-                .onStatus(
-                        HttpStatusCode::is5xxServerError,
-                        (request, response) -> {
-                            throw new PokemonTcgApiUnavailableException();
-                        }
-                )
-                .body(PokemonCardApiResponse.class);
+                        .retrieve()
+                        .onStatus(
+                                HttpStatusCode::is5xxServerError,
+                                (request, response) -> {
+                                    throw new PokemonTcgApiUnavailableException();
+                                }
+                        )
+                        .body(
+                                PokemonCardApiResponse.class
+                        )
+        );
+    }
+
+    private <T> T executeWithRetry(
+            Supplier<T> request
+    ) {
+        for (
+                int attempt = 1;
+                attempt <= MAX_ATTEMPTS;
+                attempt++
+        ) {
+            try {
+                return request.get();
+            } catch (
+                    PokemonTcgApiUnavailableException
+                    | ResourceAccessException exception
+            ) {
+                if (attempt == MAX_ATTEMPTS) {
+                    throw new PokemonTcgApiUnavailableException();
+                }
+
+                waitBeforeRetry(attempt);
+            }
+        }
+
+        throw new PokemonTcgApiUnavailableException();
+    }
+
+    private void waitBeforeRetry(
+            int attempt
+    ) {
+        try {
+            Thread.sleep(
+                    RETRY_DELAY_MILLISECONDS
+                            * attempt
+            );
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+
+            throw new PokemonTcgApiUnavailableException();
+        }
     }
 }

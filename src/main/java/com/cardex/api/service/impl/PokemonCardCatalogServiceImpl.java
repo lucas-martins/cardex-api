@@ -9,11 +9,17 @@ import com.cardex.api.pokemon.dto.PokemonCardApiSingleResponse;
 import com.cardex.api.repository.PokemonCardCatalogRepository;
 import com.cardex.api.service.PokemonCardCatalogService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -159,5 +165,72 @@ public class PokemonCardCatalogServiceImpl
         }
 
         return entity;
+    }
+
+    @Override
+    @Transactional
+    public void cacheCards(
+            List<PokemonCardApiData> cards
+    ) {
+        if (cards == null || cards.isEmpty()) {
+            return;
+        }
+
+        List<String> externalIds =
+                cards.stream()
+                        .map(PokemonCardApiData::id)
+                        .distinct()
+                        .toList();
+
+        Set<String> existingExternalIds =
+                pokemonCardCatalogRepository
+                        .findAllByExternalIdIn(
+                                externalIds
+                        )
+                        .stream()
+                        .map(
+                                PokemonCardCatalogEntity::getExternalId
+                        )
+                        .collect(Collectors.toSet());
+
+        List<PokemonCardCatalogEntity> newCards =
+                cards.stream()
+                        .filter(card ->
+                                !existingExternalIds.contains(
+                                        card.id()
+                                )
+                        )
+                        .map(this::toEntity)
+                        .toList();
+
+        if (!newCards.isEmpty()) {
+            pokemonCardCatalogRepository.saveAll(
+                    newCards
+            );
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PokemonCardCatalogEntity> searchByName(
+            String name,
+            int page,
+            int size
+    ) {
+        Pageable pageable =
+                PageRequest.of(
+                        Math.max(page - 1, 0),
+                        size,
+                        Sort.by(
+                                Sort.Order.asc("name")
+                                        .ignoreCase()
+                        )
+                );
+
+        return pokemonCardCatalogRepository
+                .findByNameContainingIgnoreCase(
+                        name.trim(),
+                        pageable
+                );
     }
 }

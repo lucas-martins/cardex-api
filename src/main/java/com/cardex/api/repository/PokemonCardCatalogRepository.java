@@ -1,6 +1,8 @@
 package com.cardex.api.repository;
 
 import com.cardex.api.entity.PokemonCardCatalogEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -18,5 +20,15 @@ public interface PokemonCardCatalogRepository
 
     Optional<PokemonCardCatalogEntity> findByExternalId(
             String externalId
+    );
+
+    List<PokemonCardCatalogEntity> findAllByExternalIdIn(
+            List<String> externalIds
+    );
+
+    Page<PokemonCardCatalogEntity>
+    findByNameContainingIgnoreCase(
+            String name,
+            Pageable pageable
     );
 }
