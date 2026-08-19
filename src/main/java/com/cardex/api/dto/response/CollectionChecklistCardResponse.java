@@ -1,5 +1,7 @@
 package com.cardex.api.dto.response;
 
+import com.cardex.api.enumeration.WishlistPriority;
+
 public record CollectionChecklistCardResponse(
         String externalId,
         String name,
@@ -7,6 +9,9 @@ public record CollectionChecklistCardResponse(
         String rarity,
         String imageUrl,
         boolean owned,
-        Long cardId
+        Long cardId,
+        boolean inWishlist,
+        Long wishlistId,
+        WishlistPriority wishlistPriority
 ) {
 }

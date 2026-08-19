@@ -8,14 +8,15 @@ import com.cardex.api.dto.response.*;
 import com.cardex.api.entity.CardEntity;
 import com.cardex.api.entity.PokemonCardCatalogEntity;
 import com.cardex.api.entity.UserEntity;
+import com.cardex.api.entity.WishlistCardEntity;
 import com.cardex.api.enumeration.CardCondition;
 import com.cardex.api.enumeration.CardHistoryAction;
 import com.cardex.api.enumeration.CardLanguage;
 import com.cardex.api.exception.CardNotFoundException;
 import com.cardex.api.exception.CollectionNotFoundException;
 import com.cardex.api.mapper.CardMapper;
-import com.cardex.api.pokemon.client.PokemonTcgClient;
 import com.cardex.api.repository.CardRepository;
+import com.cardex.api.repository.WishlistCardRepository;
 import com.cardex.api.service.AuthenticatedUserService;
 import com.cardex.api.service.CardService;
 import com.cardex.api.service.PokemonCardCatalogService;
@@ -29,7 +30,12 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -40,10 +46,10 @@ public class CardServiceImpl implements CardService {
 
     private final CardRepository cardRepository;
     private final CardMapper cardMapper;
-    private final PokemonTcgClient pokemonTcgClient;
     private final AuthenticatedUserService authenticatedUserService;
     private final CardHistoryRecorder cardHistoryRecorder;
     private final PokemonCardCatalogService pokemonCardCatalogService;
+    private final WishlistCardRepository wishlistCardRepository;
 
     private static final Set<String> ALLOWED_SORT_PROPERTIES = Set.of(
             "name",
@@ -870,12 +876,30 @@ public class CardServiceImpl implements CardService {
             );
         }
 
+        List<WishlistCardEntity> wishlistCards =
+                wishlistCardRepository
+                        .findAllByUserAndCollectionId(
+                                authenticatedUser,
+                                collectionId
+                        );
+
         Map<String, CardEntity> ownedCardsByExternalId =
                 ownedCards
                         .stream()
                         .collect(
                                 Collectors.toMap(
                                         CardEntity::getExternalId,
+                                        card -> card,
+                                        (first, second) -> first
+                                )
+                        );
+
+        Map<String, WishlistCardEntity> wishlistCardsByExternalId =
+                wishlistCards
+                        .stream()
+                        .collect(
+                                Collectors.toMap(
+                                        WishlistCardEntity::getExternalId,
                                         card -> card,
                                         (first, second) -> first
                                 )
@@ -934,6 +958,12 @@ public class CardServiceImpl implements CardService {
                                                     .getExternalId()
                                     );
 
+                            WishlistCardEntity wishlistCard =
+                                    wishlistCardsByExternalId.get(
+                                            catalogCard
+                                                    .getExternalId()
+                                    );
+
                             return new CollectionChecklistCardResponse(
                                     catalogCard.getExternalId(),
                                     catalogCard.getName(),
@@ -943,6 +973,13 @@ public class CardServiceImpl implements CardService {
                                     ownedCard != null,
                                     ownedCard != null
                                             ? ownedCard.getId()
+                                            : null,
+                                    wishlistCard != null,
+                                    wishlistCard != null
+                                            ? wishlistCard.getId()
+                                            : null,
+                                    wishlistCard != null
+                                            ? wishlistCard.getPriority()
                                             : null
                             );
                         })

@@ -7,9 +7,11 @@ import com.cardex.api.dto.request.UpdateCardRequest;
 import com.cardex.api.dto.response.CollectionChecklistResponse;
 import com.cardex.api.entity.CardEntity;
 import com.cardex.api.entity.PokemonCardCatalogEntity;
+import com.cardex.api.entity.WishlistCardEntity;
 import com.cardex.api.enumeration.CardCondition;
 import com.cardex.api.enumeration.CardHistoryAction;
 import com.cardex.api.enumeration.CardLanguage;
+import com.cardex.api.enumeration.WishlistPriority;
 import com.cardex.api.exception.CardNotFoundException;
 import com.cardex.api.exception.CollectionNotFoundException;
 import com.cardex.api.exception.PokemonCardNotFoundException;
@@ -18,6 +20,7 @@ import com.cardex.api.pokemon.client.PokemonTcgClient;
 import com.cardex.api.pokemon.dto.*;
 import com.cardex.api.repository.CardRepository;
 import com.cardex.api.entity.UserEntity;
+import com.cardex.api.repository.WishlistCardRepository;
 import com.cardex.api.service.AuthenticatedUserService;
 import com.cardex.api.service.PokemonCardCatalogService;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,6 +59,9 @@ class CardServiceImplTest {
 
     @Mock
     private PokemonCardCatalogService pokemonCardCatalogService;
+
+    @Mock
+    private WishlistCardRepository wishlistCardRepository;
 
     private CardEntity cardEntity;
     private CardResponse cardResponse;
@@ -510,6 +516,11 @@ class CardServiceImplTest {
                 List.of(caterpie, metapod)
         );
 
+        when(wishlistCardRepository.findAllByUserAndCollectionId(
+                user,
+                "sm1"
+        )).thenReturn(List.of());
+
         CollectionChecklistResponse result =
                 cardService.getCollectionChecklist("sm1");
 
@@ -581,6 +592,11 @@ class CardServiceImplTest {
                 "sm1"
         )).thenReturn(List.of(ownedCard));
 
+        when(wishlistCardRepository.findAllByUserAndCollectionId(
+                user,
+                "sm1"
+        )).thenReturn(List.of());
+
         when(pokemonCardCatalogService.findByCollectionId(
                 "sm1"
         )).thenReturn(
@@ -644,5 +660,94 @@ class CardServiceImplTest {
         );
 
         verifyNoInteractions(pokemonTcgClient);
+    }
+
+    @Test
+    void shouldReturnWishlistInformationInCollectionChecklist() {
+        CardEntity ownedCard = new CardEntity();
+        ownedCard.setId(10L);
+        ownedCard.setExternalId("sm1-2");
+        ownedCard.setCollectionId("sm1");
+        ownedCard.setCollectionName("Sun & Moon");
+        ownedCard.setUser(user);
+
+        PokemonCardCatalogEntity caterpie =
+                createCatalogCard(
+                        "sm1-1",
+                        "Caterpie",
+                        "1",
+                        "Common"
+                );
+
+        PokemonCardCatalogEntity metapod =
+                createCatalogCard(
+                        "sm1-2",
+                        "Metapod",
+                        "2",
+                        "Uncommon"
+                );
+
+        WishlistCardEntity wishlistCard =
+                WishlistCardEntity.builder()
+                        .user(user)
+                        .externalId("sm1-1")
+                        .name("Caterpie")
+                        .collectionId("sm1")
+                        .collectionName("Sun & Moon")
+                        .priority(WishlistPriority.HIGH)
+                        .build();
+
+        wishlistCard.setId(20L);
+
+        when(authenticatedUserService.getAuthenticatedUser())
+                .thenReturn(user);
+
+        when(cardRepository.findByUserAndCollectionId(
+                user,
+                "sm1"
+        )).thenReturn(List.of(ownedCard));
+
+        when(wishlistCardRepository.findAllByUserAndCollectionId(
+                user,
+                "sm1"
+        )).thenReturn(List.of(wishlistCard));
+
+        when(pokemonCardCatalogService.findByCollectionId(
+                "sm1"
+        )).thenReturn(
+                List.of(
+                        caterpie,
+                        metapod
+                )
+        );
+
+        CollectionChecklistResponse result =
+                cardService.getCollectionChecklist("sm1");
+
+        var caterpieResult =
+                result.cards().get(0);
+
+        assertFalse(caterpieResult.owned());
+        assertNull(caterpieResult.cardId());
+
+        assertTrue(caterpieResult.inWishlist());
+        assertEquals(
+                20L,
+                caterpieResult.wishlistId()
+        );
+        assertEquals(
+                WishlistPriority.HIGH,
+                caterpieResult.wishlistPriority()
+        );
+
+        var metapodResult =
+                result.cards().get(1);
+
+        assertTrue(metapodResult.owned());
+        assertFalse(metapodResult.inWishlist());
+        assertNull(metapodResult.wishlistId());
+        assertNull(
+                metapodResult.wishlistPriority()
+        );
     }
 }

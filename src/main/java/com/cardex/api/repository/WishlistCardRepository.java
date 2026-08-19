@@ -23,4 +23,9 @@ public interface WishlistCardRepository
             Long id,
             UserEntity user
     );
+
+    List<WishlistCardEntity> findAllByUserAndCollectionId(
+            UserEntity user,
+            String collectionId
+    );
 }
