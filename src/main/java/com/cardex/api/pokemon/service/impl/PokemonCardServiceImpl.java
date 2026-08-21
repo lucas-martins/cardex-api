@@ -1,6 +1,9 @@
 package com.cardex.api.pokemon.service.impl;
 
+import com.cardex.api.entity.CardEntity;
 import com.cardex.api.entity.PokemonCardCatalogEntity;
+import com.cardex.api.entity.UserEntity;
+import com.cardex.api.entity.WishlistCardEntity;
 import com.cardex.api.exception.PokemonTcgApiUnavailableException;
 import com.cardex.api.pokemon.client.PokemonTcgClient;
 import com.cardex.api.pokemon.dto.PokemonCardApiResponse;
@@ -8,12 +11,18 @@ import com.cardex.api.pokemon.mapper.PokemonCardMapper;
 import com.cardex.api.pokemon.response.PokemonCardSearchPageResponse;
 import com.cardex.api.pokemon.response.PokemonCardSearchResponse;
 import com.cardex.api.pokemon.service.PokemonCardService;
+import com.cardex.api.repository.CardRepository;
+import com.cardex.api.repository.WishlistCardRepository;
+import com.cardex.api.service.AuthenticatedUserService;
 import com.cardex.api.service.PokemonCardCatalogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -22,8 +31,10 @@ public class PokemonCardServiceImpl
 
     private final PokemonTcgClient pokemonTcgClient;
     private final PokemonCardMapper pokemonCardMapper;
-    private final PokemonCardCatalogService
-            pokemonCardCatalogService;
+    private final PokemonCardCatalogService pokemonCardCatalogService;
+    private final CardRepository cardRepository;
+    private final WishlistCardRepository wishlistCardRepository;
+    private final AuthenticatedUserService authenticatedUserService;
 
     @Override
     public PokemonCardSearchPageResponse searchByName(
@@ -31,6 +42,9 @@ public class PokemonCardServiceImpl
             int page,
             int size
     ) {
+        UserEntity authenticatedUser =
+                authenticatedUserService.getAuthenticatedUser();
+
         try {
             PokemonCardApiResponse apiResponse =
                     pokemonTcgClient.searchByName(
@@ -51,13 +65,19 @@ public class PokemonCardServiceImpl
                     apiResponse.data()
             );
 
-            List<PokemonCardSearchResponse> cards =
+            List<PokemonCardSearchResponse> baseCards =
                     apiResponse.data()
                             .stream()
                             .map(
                                     pokemonCardMapper::toSearchResponse
                             )
                             .toList();
+
+            List<PokemonCardSearchResponse> cards =
+                    enrichWithUserState(
+                            baseCards,
+                            authenticatedUser
+                    );
 
             int totalElements =
                     apiResponse.totalCount() != null
@@ -91,6 +111,7 @@ public class PokemonCardServiceImpl
                     name,
                     page,
                     size,
+                    authenticatedUser,
                     exception
             );
         }
@@ -100,6 +121,7 @@ public class PokemonCardServiceImpl
             String name,
             int page,
             int size,
+            UserEntity authenticatedUser,
             PokemonTcgApiUnavailableException exception
     ) {
         Page<PokemonCardCatalogEntity> localPage =
@@ -113,7 +135,7 @@ public class PokemonCardServiceImpl
             throw exception;
         }
 
-        List<PokemonCardSearchResponse> cards =
+        List<PokemonCardSearchResponse> baseCards =
                 localPage
                         .getContent()
                         .stream()
@@ -121,6 +143,12 @@ public class PokemonCardServiceImpl
                                 pokemonCardMapper::toSearchResponse
                         )
                         .toList();
+
+        List<PokemonCardSearchResponse> cards =
+                enrichWithUserState(
+                        baseCards,
+                        authenticatedUser
+                );
 
         return new PokemonCardSearchPageResponse(
                 cards,
@@ -132,6 +160,89 @@ public class PokemonCardServiceImpl
                 localPage.isFirst(),
                 localPage.isLast()
         );
+    }
+
+    private List<PokemonCardSearchResponse> enrichWithUserState(
+            List<PokemonCardSearchResponse> cards,
+            UserEntity authenticatedUser
+    ) {
+        if (cards.isEmpty()) {
+            return cards;
+        }
+
+        List<String> externalIds =
+                cards
+                        .stream()
+                        .map(
+                                PokemonCardSearchResponse::externalId
+                        )
+                        .distinct()
+                        .toList();
+
+        Map<String, CardEntity> ownedCardsByExternalId =
+                cardRepository
+                        .findByUserAndExternalIdIn(
+                                authenticatedUser,
+                                externalIds
+                        )
+                        .stream()
+                        .collect(
+                                Collectors.toMap(
+                                        CardEntity::getExternalId,
+                                        Function.identity(),
+                                        (first, second) -> first
+                                )
+                        );
+
+        Map<String, WishlistCardEntity> wishlistCardsByExternalId =
+                wishlistCardRepository
+                        .findByUserAndExternalIdIn(
+                                authenticatedUser,
+                                externalIds
+                        )
+                        .stream()
+                        .collect(
+                                Collectors.toMap(
+                                        WishlistCardEntity::getExternalId,
+                                        Function.identity(),
+                                        (first, second) -> first
+                                )
+                        );
+
+        return cards
+                .stream()
+                .map(card -> {
+                    CardEntity ownedCard =
+                            ownedCardsByExternalId.get(
+                                    card.externalId()
+                            );
+
+                    WishlistCardEntity wishlistCard =
+                            wishlistCardsByExternalId.get(
+                                    card.externalId()
+                            );
+
+                    return new PokemonCardSearchResponse(
+                            card.externalId(),
+                            card.name(),
+                            card.collectionName(),
+                            card.cardNumber(),
+                            card.rarity(),
+                            card.imageUrl(),
+                            ownedCard != null,
+                            ownedCard != null
+                                    ? ownedCard.getId()
+                                    : null,
+                            wishlistCard != null,
+                            wishlistCard != null
+                                    ? wishlistCard.getId()
+                                    : null,
+                            wishlistCard != null
+                                    ? wishlistCard.getPriority()
+                                    : null
+                    );
+                })
+                .toList();
     }
 
     private PokemonCardSearchPageResponse emptyResponse(

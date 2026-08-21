@@ -13,14 +13,20 @@ public interface PokemonCardMapper {
     @Mapping(target = "collectionName", source = "set.name")
     @Mapping(target = "cardNumber", source = "number")
     @Mapping(target = "imageUrl", source = "images.large")
+    @Mapping(target = "owned", ignore = true)
+    @Mapping(target = "cardId", ignore = true)
+    @Mapping(target = "inWishlist", ignore = true)
+    @Mapping(target = "wishlistId", ignore = true)
+    @Mapping(target = "wishlistPriority", ignore = true)
     PokemonCardSearchResponse toSearchResponse(
             PokemonCardApiData card
     );
 
-    @Mapping(target = "externalId", source = "externalId")
-    @Mapping(target = "collectionName", source = "collectionName")
-    @Mapping(target = "cardNumber", source = "cardNumber")
-    @Mapping(target = "imageUrl", source = "imageUrl")
+    @Mapping(target = "owned", ignore = true)
+    @Mapping(target = "cardId", ignore = true)
+    @Mapping(target = "inWishlist", ignore = true)
+    @Mapping(target = "wishlistId", ignore = true)
+    @Mapping(target = "wishlistPriority", ignore = true)
     PokemonCardSearchResponse toSearchResponse(
             PokemonCardCatalogEntity card
     );

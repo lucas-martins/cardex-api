@@ -28,4 +28,9 @@ public interface WishlistCardRepository
             UserEntity user,
             String collectionId
     );
+
+    List<WishlistCardEntity> findByUserAndExternalIdIn(
+            UserEntity user,
+            List<String> externalIds
+    );
 }

@@ -159,4 +159,9 @@ public interface CardRepository extends
             Long id,
             UserEntity user
     );
+
+    List<CardEntity> findByUserAndExternalIdIn(
+            UserEntity user,
+            List<String> externalIds
+    );
 }
