@@ -33,4 +33,9 @@ public interface WishlistCardRepository
             UserEntity user,
             List<String> externalIds
     );
+
+    Optional<WishlistCardEntity> findByUserAndExternalId(
+            UserEntity user,
+            String externalId
+    );
 }

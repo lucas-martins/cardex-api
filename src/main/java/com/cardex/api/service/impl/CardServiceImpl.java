@@ -100,6 +100,11 @@ public class CardServiceImpl implements CardService {
         CardEntity updatedCard =
                 cardRepository.save(existingCard);
 
+        removeFromWishlistIfPresent(
+                updatedCard.getUser(),
+                updatedCard.getExternalId()
+        );
+
         cardHistoryRecorder.record(
                 updatedCard,
                 CardHistoryAction.UPDATED,
@@ -157,6 +162,12 @@ public class CardServiceImpl implements CardService {
 
         CardEntity savedCard =
                 cardRepository.save(cardEntity);
+
+        removeFromWishlistIfPresent(
+                authenticatedUser,
+                savedCard.getExternalId()
+        );
+
 
         cardHistoryRecorder.record(
                 savedCard,
@@ -1143,5 +1154,19 @@ public class CardServiceImpl implements CardService {
                 " ",
                 changes
         );
+    }
+
+    private void removeFromWishlistIfPresent(
+            UserEntity user,
+            String externalId
+    ) {
+        wishlistCardRepository
+                .findByUserAndExternalId(
+                        user,
+                        externalId
+                )
+                .ifPresent(
+                        wishlistCardRepository::delete
+                );
     }
 }

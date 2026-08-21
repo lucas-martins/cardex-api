@@ -255,6 +255,19 @@ class CardServiceImplTest {
         when(cardRepository.save(cardEntity))
                 .thenReturn(cardEntity);
 
+        WishlistCardEntity wishlistCard =
+                WishlistCardEntity.builder()
+                        .user(user)
+                        .externalId("sm1-12")
+                        .name("Decidueye-GX")
+                        .priority(WishlistPriority.MEDIUM)
+                        .build();
+
+        when(wishlistCardRepository.findByUserAndExternalId(
+                user,
+                "sm1-12"
+        )).thenReturn(Optional.of(wishlistCard));
+
         when(cardMapper.toResponse(cardEntity))
                 .thenReturn(updatedResponse);
 
@@ -279,6 +292,15 @@ class CardServiceImplTest {
                 CardHistoryAction.UPDATED,
                 "Quantity changed from 3 to 5."
         );
+
+        verify(wishlistCardRepository)
+                .findByUserAndExternalId(
+                        user,
+                        "sm1-12"
+                );
+
+        verify(wishlistCardRepository)
+                .delete(wishlistCard);
     }
 
     @Test
@@ -749,5 +771,78 @@ class CardServiceImplTest {
         assertNull(
                 metapodResult.wishlistPriority()
         );
+    }
+
+    @Test
+    void shouldRemoveCardFromWishlistWhenAddingToCollection() {
+        CreateCardRequest request =
+                new CreateCardRequest();
+
+        request.setExternalId("sm1-1");
+        request.setQuantity(1);
+        request.setLanguage(CardLanguage.ENGLISH);
+        request.setCondition(CardCondition.NEAR_MINT);
+
+        PokemonCardCatalogEntity catalogCard =
+                new PokemonCardCatalogEntity();
+
+        catalogCard.setExternalId("sm1-1");
+        catalogCard.setName("Caterpie");
+        catalogCard.setCollectionId("sm1");
+        catalogCard.setCollectionName("Sun & Moon");
+        catalogCard.setCardNumber("1");
+        catalogCard.setRarity("Common");
+
+        CardEntity cardEntity =
+                new CardEntity();
+
+        cardEntity.setExternalId("sm1-1");
+
+        CardEntity savedCard =
+                new CardEntity();
+
+        savedCard.setId(10L);
+        savedCard.setUser(user);
+        savedCard.setExternalId("sm1-1");
+
+        WishlistCardEntity wishlistCard =
+                WishlistCardEntity.builder()
+                        .user(user)
+                        .externalId("sm1-1")
+                        .name("Caterpie")
+                        .priority(WishlistPriority.MEDIUM)
+                        .build();
+
+        when(authenticatedUserService.getAuthenticatedUser())
+                .thenReturn(user);
+
+        when(cardRepository
+                .findByUserAndExternalIdAndLanguageAndCondition(
+                        user,
+                        "sm1-1",
+                        CardLanguage.ENGLISH,
+                        CardCondition.NEAR_MINT
+                ))
+                .thenReturn(Optional.empty());
+
+        when(pokemonCardCatalogService.findByExternalId(
+                "sm1-1"
+        )).thenReturn(catalogCard);
+
+        when(cardMapper.toEntity(request))
+                .thenReturn(cardEntity);
+
+        when(cardRepository.save(cardEntity))
+                .thenReturn(savedCard);
+
+        when(wishlistCardRepository.findByUserAndExternalId(
+                user,
+                "sm1-1"
+        )).thenReturn(Optional.of(wishlistCard));
+
+        cardService.create(request);
+
+        verify(wishlistCardRepository)
+                .delete(wishlistCard);
     }
 }
