@@ -9,6 +9,7 @@ public interface CardHistoryService {
     Page<CardHistoryResponse> findAll(
             int page,
             int size,
-            CardHistoryAction action
+            CardHistoryAction action,
+            String cardName
     );
 }

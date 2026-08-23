@@ -22,4 +22,18 @@ public interface CardHistoryRepository
             CardHistoryAction action,
             Pageable pageable
     );
+
+    Page<CardHistoryEntity> findByUserAndCardNameContainingIgnoreCase(
+            UserEntity user,
+            String cardName,
+            Pageable pageable
+    );
+
+    Page<CardHistoryEntity>
+    findByUserAndActionAndCardNameContainingIgnoreCase(
+            UserEntity user,
+            CardHistoryAction action,
+            String cardName,
+            Pageable pageable
+    );
 }

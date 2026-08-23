@@ -30,7 +30,8 @@ public class CardHistoryServiceImpl
     public Page<CardHistoryResponse> findAll(
             int page,
             int size,
-            CardHistoryAction action
+            CardHistoryAction action,
+            String cardName
     ) {
         UserEntity authenticatedUser =
                 authenticatedUserService.getAuthenticatedUser();
@@ -44,19 +45,47 @@ public class CardHistoryServiceImpl
                 )
         );
 
+        String normalizedCardName =
+                cardName != null
+                        ? cardName.trim()
+                        : null;
+
+        boolean hasCardName =
+                normalizedCardName != null
+                        && !normalizedCardName.isBlank();
+
         Page<CardHistoryEntity> historyPage;
 
-        if (action == null) {
-            historyPage = cardHistoryRepository.findByUser(
-                    authenticatedUser,
-                    pageable
-            );
+        if (action == null && !hasCardName) {
+            historyPage =
+                    cardHistoryRepository.findByUser(
+                            authenticatedUser,
+                            pageable
+                    );
+        } else if (action != null && !hasCardName) {
+            historyPage =
+                    cardHistoryRepository.findByUserAndAction(
+                            authenticatedUser,
+                            action,
+                            pageable
+                    );
+        } else if (action == null) {
+            historyPage =
+                    cardHistoryRepository
+                            .findByUserAndCardNameContainingIgnoreCase(
+                                    authenticatedUser,
+                                    normalizedCardName,
+                                    pageable
+                            );
         } else {
-            historyPage = cardHistoryRepository.findByUserAndAction(
-                    authenticatedUser,
-                    action,
-                    pageable
-            );
+            historyPage =
+                    cardHistoryRepository
+                            .findByUserAndActionAndCardNameContainingIgnoreCase(
+                                    authenticatedUser,
+                                    action,
+                                    normalizedCardName,
+                                    pageable
+                            );
         }
 
         return historyPage.map(history -> {
