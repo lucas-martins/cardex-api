@@ -7,9 +7,11 @@ import com.cardex.api.entity.WishlistCardEntity;
 import com.cardex.api.exception.PokemonTcgApiUnavailableException;
 import com.cardex.api.pokemon.client.PokemonTcgClient;
 import com.cardex.api.pokemon.dto.PokemonCardApiResponse;
+import com.cardex.api.pokemon.dto.PokemonSetApiResponse;
 import com.cardex.api.pokemon.mapper.PokemonCardMapper;
 import com.cardex.api.pokemon.response.PokemonCardSearchPageResponse;
 import com.cardex.api.pokemon.response.PokemonCardSearchResponse;
+import com.cardex.api.pokemon.response.PokemonCollectionResponse;
 import com.cardex.api.pokemon.service.PokemonCardService;
 import com.cardex.api.repository.CardRepository;
 import com.cardex.api.repository.WishlistCardRepository;
@@ -115,6 +117,28 @@ public class PokemonCardServiceImpl
                     exception
             );
         }
+    }
+
+    @Override
+    public List<PokemonCollectionResponse> findCollections() {
+        PokemonSetApiResponse apiResponse =
+                pokemonTcgClient.findSets();
+
+        if (apiResponse == null
+                || apiResponse.data() == null) {
+            return List.of();
+        }
+
+        return apiResponse
+                .data()
+                .stream()
+                .map(set ->
+                        new PokemonCollectionResponse(
+                                set.id(),
+                                set.name()
+                        )
+                )
+                .toList();
     }
 
     private PokemonCardSearchPageResponse searchFromLocalCatalog(

@@ -164,4 +164,26 @@ public interface CardRepository extends
             UserEntity user,
             List<String> externalIds
     );
+
+    @Query("""
+    select coalesce(sum(card.quantity), 0)
+    from CardEntity card
+    where card.user = :user
+      and card.language = :language
+    """)
+    Long sumTotalQuantityByUserAndLanguage(
+            UserEntity user,
+            CardLanguage language
+    );
+
+    @Query("""
+    select count(distinct card.externalId)
+    from CardEntity card
+    where card.user = :user
+      and card.collectionId = :collectionId
+    """)
+    long countDistinctCardsByUserAndCollectionId(
+            UserEntity user,
+            String collectionId
+    );
 }

@@ -11,6 +11,7 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 
 import java.util.function.Supplier;
+import com.cardex.api.pokemon.dto.PokemonSetApiResponse;
 
 @Component
 @RequiredArgsConstructor
@@ -144,6 +145,31 @@ public class PokemonTcgClient {
                         )
                         .body(
                                 PokemonCardApiResponse.class
+                        )
+        );
+    }
+
+    public PokemonSetApiResponse findSets() {
+        return executeWithRetry(
+                () -> pokemonTcgRestClient
+                        .get()
+                        .uri(uriBuilder -> uriBuilder
+                                .path("/sets")
+                                .queryParam(
+                                        "orderBy",
+                                        "name"
+                                )
+                                .build()
+                        )
+                        .retrieve()
+                        .onStatus(
+                                HttpStatusCode::is5xxServerError,
+                                (request, response) -> {
+                                    throw new PokemonTcgApiUnavailableException();
+                                }
+                        )
+                        .body(
+                                PokemonSetApiResponse.class
                         )
         );
     }

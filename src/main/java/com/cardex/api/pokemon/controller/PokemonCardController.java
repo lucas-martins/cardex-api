@@ -1,6 +1,7 @@
 package com.cardex.api.pokemon.controller;
 
 import com.cardex.api.pokemon.response.PokemonCardSearchPageResponse;
+import com.cardex.api.pokemon.response.PokemonCollectionResponse;
 import com.cardex.api.pokemon.service.PokemonCardService;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -37,6 +38,14 @@ public class PokemonCardController {
     ) {
         return ResponseEntity.ok(
                 pokemonCardService.searchByName(name, page, size)
+        );
+    }
+
+    @GetMapping("/collections")
+    public ResponseEntity<List<PokemonCollectionResponse>>
+    findCollections() {
+        return ResponseEntity.ok(
+                pokemonCardService.findCollections()
         );
     }
 }
