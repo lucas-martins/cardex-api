@@ -667,6 +667,15 @@ class CardServiceImplTest {
                 "invalid"
         )).thenReturn(List.of());
 
+        when(wishlistCardRepository.findAllByUserAndCollectionId(
+                user,
+                "invalid"
+        )).thenReturn(List.of());
+
+        when(pokemonCardCatalogService.findByCollectionId(
+                "invalid"
+        )).thenReturn(List.of());
+
         CollectionNotFoundException exception =
                 assertThrows(
                         CollectionNotFoundException.class,
@@ -681,7 +690,10 @@ class CardServiceImplTest {
                 exception.getMessage()
         );
 
-        verifyNoInteractions(pokemonTcgClient);
+        verify(pokemonCardCatalogService)
+                .findByCollectionId(
+                        "invalid"
+                );
     }
 
     @Test
@@ -844,5 +856,109 @@ class CardServiceImplTest {
 
         verify(wishlistCardRepository)
                 .delete(wishlistCard);
+    }
+
+    @Test
+    void shouldReturnCollectionChecklistWhenUserOwnsNoCards() {
+        PokemonCardCatalogEntity caterpie =
+                createCatalogCard(
+                        "sm1-1",
+                        "Caterpie",
+                        "1",
+                        "Common"
+                );
+
+        PokemonCardCatalogEntity metapod =
+                createCatalogCard(
+                        "sm1-2",
+                        "Metapod",
+                        "2",
+                        "Uncommon"
+                );
+
+        when(authenticatedUserService.getAuthenticatedUser())
+                .thenReturn(user);
+
+        when(cardRepository.findByUserAndCollectionId(
+                user,
+                "sm1"
+        )).thenReturn(List.of());
+
+        when(wishlistCardRepository.findAllByUserAndCollectionId(
+                user,
+                "sm1"
+        )).thenReturn(List.of());
+
+        when(pokemonCardCatalogService.findByCollectionId(
+                "sm1"
+        )).thenReturn(
+                List.of(
+                        caterpie,
+                        metapod
+                )
+        );
+
+        CollectionChecklistResponse result =
+                cardService.getCollectionChecklist("sm1");
+
+        assertEquals(
+                "sm1",
+                result.collectionId()
+        );
+
+        assertEquals(
+                "Sun & Moon",
+                result.collectionName()
+        );
+
+        assertEquals(
+                0L,
+                result.ownedUniqueCards()
+        );
+
+        assertEquals(
+                2L,
+                result.totalCards()
+        );
+
+        assertEquals(
+                0.0,
+                result.completionPercentage()
+        );
+
+        assertEquals(
+                2,
+                result.cards().size()
+        );
+
+        assertFalse(
+                result.cards().get(0).owned()
+        );
+
+        assertNull(
+                result.cards().get(0).cardId()
+        );
+
+        assertFalse(
+                result.cards().get(1).owned()
+        );
+
+        assertNull(
+                result.cards().get(1).cardId()
+        );
+
+        verify(authenticatedUserService)
+                .getAuthenticatedUser();
+
+        verify(cardRepository)
+                .findByUserAndCollectionId(
+                        user,
+                        "sm1"
+                );
+
+        verify(pokemonCardCatalogService)
+                .findByCollectionId(
+                        "sm1"
+                );
     }
 }

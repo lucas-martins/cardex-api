@@ -881,12 +881,6 @@ public class CardServiceImpl implements CardService {
                                 collectionId
                         );
 
-        if (ownedCards.isEmpty()) {
-            throw new CollectionNotFoundException(
-                    collectionId
-            );
-        }
-
         List<WishlistCardEntity> wishlistCards =
                 wishlistCardRepository
                         .findAllByUserAndCollectionId(
@@ -941,11 +935,7 @@ public class CardServiceImpl implements CardService {
                 collectionCards.get(0);
 
         String collectionName =
-                firstCatalogCard.getCollectionName() != null
-                        ? firstCatalogCard.getCollectionName()
-                        : ownedCards
-                        .get(0)
-                        .getCollectionName();
+                firstCatalogCard.getCollectionName();
 
         long ownedUniqueCards =
                 ownedCardsByExternalId.size();

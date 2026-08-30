@@ -15,20 +15,25 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class PokemonCardCatalogServiceImplTest {
 
     @Mock
-    private PokemonCardCatalogRepository pokemonCardCatalogRepository;
+    private PokemonCardCatalogRepository
+            pokemonCardCatalogRepository;
 
     @Mock
     private PokemonTcgClient pokemonTcgClient;
 
     @InjectMocks
-    private PokemonCardCatalogServiceImpl pokemonCardCatalogService;
+    private PokemonCardCatalogServiceImpl
+            pokemonCardCatalogService;
 
     @Test
     void shouldReturnCachedCollectionWithoutCallingPokemonApi() {
@@ -51,7 +56,11 @@ class PokemonCardCatalogServiceImplTest {
                 pokemonCardCatalogService
                         .findByCollectionId("sm1");
 
-        assertEquals(1, result.size());
+        assertEquals(
+                1,
+                result.size()
+        );
+
         assertEquals(
                 "sm1-1",
                 result.get(0).getExternalId()
@@ -61,12 +70,16 @@ class PokemonCardCatalogServiceImplTest {
                 pokemonCardCatalogRepository
         ).findByCollectionId("sm1");
 
-        verifyNoInteractions(pokemonTcgClient);
+        verifyNoInteractions(
+                pokemonTcgClient
+        );
 
         verify(
                 pokemonCardCatalogRepository,
                 never()
-        ).saveAll(anyList());
+        ).saveAll(
+                anyList()
+        );
     }
 
     @Test
@@ -118,11 +131,21 @@ class PokemonCardCatalogServiceImplTest {
                         2
                 );
 
+        PokemonCardCatalogEntity caterpieEntity =
+                toCatalogCard(caterpie);
+
+        PokemonCardCatalogEntity metapodEntity =
+                toCatalogCard(metapod);
+
         when(
                 pokemonCardCatalogRepository
                         .findByCollectionId("sm1")
         ).thenReturn(
-                List.of()
+                List.of(),
+                List.of(
+                        caterpieEntity,
+                        metapodEntity
+                )
         );
 
         when(
@@ -131,7 +154,9 @@ class PokemonCardCatalogServiceImplTest {
                         1,
                         250
                 )
-        ).thenReturn(response);
+        ).thenReturn(
+                response
+        );
 
         when(
                 pokemonCardCatalogRepository
@@ -145,7 +170,10 @@ class PokemonCardCatalogServiceImplTest {
                 pokemonCardCatalogService
                         .findByCollectionId("sm1");
 
-        assertEquals(2, result.size());
+        assertEquals(
+                2,
+                result.size()
+        );
 
         PokemonCardCatalogEntity first =
                 result.get(0);
@@ -195,7 +223,22 @@ class PokemonCardCatalogServiceImplTest {
 
         verify(
                 pokemonCardCatalogRepository
-        ).saveAll(anyList());
+        ).saveAll(
+                argThat(cards -> {
+                    int count = 0;
+
+                    for (PokemonCardCatalogEntity ignored : cards) {
+                        count++;
+                    }
+
+                    return count == 2;
+                })
+        );
+
+        verify(
+                pokemonCardCatalogRepository,
+                times(2)
+        ).findByCollectionId("sm1");
     }
 
     @Test
@@ -247,11 +290,21 @@ class PokemonCardCatalogServiceImplTest {
                         2
                 );
 
+        PokemonCardCatalogEntity firstCardEntity =
+                toCatalogCard(firstCard);
+
+        PokemonCardCatalogEntity secondCardEntity =
+                toCatalogCard(secondCard);
+
         when(
                 pokemonCardCatalogRepository
                         .findByCollectionId("test1")
         ).thenReturn(
-                List.of()
+                List.of(),
+                List.of(
+                        firstCardEntity,
+                        secondCardEntity
+                )
         );
 
         when(
@@ -260,7 +313,9 @@ class PokemonCardCatalogServiceImplTest {
                         1,
                         250
                 )
-        ).thenReturn(firstPage);
+        ).thenReturn(
+                firstPage
+        );
 
         when(
                 pokemonTcgClient.searchBySetId(
@@ -268,7 +323,9 @@ class PokemonCardCatalogServiceImplTest {
                         2,
                         250
                 )
-        ).thenReturn(secondPage);
+        ).thenReturn(
+                secondPage
+        );
 
         when(
                 pokemonCardCatalogRepository
@@ -282,7 +339,10 @@ class PokemonCardCatalogServiceImplTest {
                 pokemonCardCatalogService
                         .findByCollectionId("test1");
 
-        assertEquals(2, result.size());
+        assertEquals(
+                2,
+                result.size()
+        );
 
         verify(
                 pokemonTcgClient
@@ -321,6 +381,7 @@ class PokemonCardCatalogServiceImplTest {
                 pokemonCardCatalogRepository
                         .findByCollectionId("invalid")
         ).thenReturn(
+                List.of(),
                 List.of()
         );
 
@@ -344,12 +405,201 @@ class PokemonCardCatalogServiceImplTest {
                 pokemonCardCatalogService
                         .findByCollectionId("invalid");
 
-        assertTrue(result.isEmpty());
+        assertTrue(
+                result.isEmpty()
+        );
+
+        verify(
+                pokemonCardCatalogRepository,
+                never()
+        ).saveAll(
+                anyList()
+        );
+    }
+
+    @Test
+    void shouldCompleteCollectionWhenCacheIsPartial() {
+        PokemonCardCatalogEntity cachedCard =
+                new PokemonCardCatalogEntity();
+
+        cachedCard.setExternalId(
+                "sv3pt5-1"
+        );
+
+        cachedCard.setCollectionId(
+                "sv3pt5"
+        );
+
+        cachedCard.setCollectionName(
+                "151"
+        );
+
+        cachedCard.setCollectionSeries(
+                "Scarlet & Violet"
+        );
+
+        cachedCard.setCollectionTotal(
+                3
+        );
+
+        PokemonCardApiData firstCard =
+                createPokemonCard(
+                        "sv3pt5-1",
+                        "Bulbasaur"
+                );
+
+        PokemonCardApiData secondCard =
+                createPokemonCard(
+                        "sv3pt5-2",
+                        "Ivysaur"
+                );
+
+        PokemonCardApiData thirdCard =
+                createPokemonCard(
+                        "sv3pt5-3",
+                        "Venusaur ex"
+                );
+
+        when(
+                pokemonCardCatalogRepository
+                        .findByCollectionId("sv3pt5")
+        ).thenReturn(
+                List.of(cachedCard),
+                List.of(
+                        cachedCard,
+                        toCatalogCard(
+                                secondCard
+                        ),
+                        toCatalogCard(
+                                thirdCard
+                        )
+                )
+        );
+
+        when(
+                pokemonTcgClient.searchBySetId(
+                        "sv3pt5",
+                        1,
+                        250
+                )
+        ).thenReturn(
+                new PokemonCardApiResponse(
+                        List.of(
+                                firstCard,
+                                secondCard,
+                                thirdCard
+                        ),
+                        1,
+                        250,
+                        3,
+                        3
+                )
+        );
+
+        when(
+                pokemonCardCatalogRepository
+                        .saveAll(anyList())
+        ).thenAnswer(
+                invocation ->
+                        invocation.getArgument(0)
+        );
+
+        List<PokemonCardCatalogEntity> result =
+                pokemonCardCatalogService
+                        .findByCollectionId(
+                                "sv3pt5"
+                        );
+
+        assertEquals(
+                3,
+                result.size()
+        );
+
+        verify(
+                pokemonTcgClient
+        ).searchBySetId(
+                "sv3pt5",
+                1,
+                250
+        );
 
         verify(
                 pokemonCardCatalogRepository
         ).saveAll(
-                List.of()
+                argThat(cards -> {
+                    int count = 0;
+
+                    for (PokemonCardCatalogEntity ignored : cards) {
+                        count++;
+                    }
+
+                    return count == 2;
+                })
+        );
+    }
+
+    @Test
+    void shouldReturnCachedCollectionWhenCacheIsComplete() {
+        PokemonCardCatalogEntity firstCard =
+                new PokemonCardCatalogEntity();
+
+        firstCard.setExternalId(
+                "base1-1"
+        );
+
+        firstCard.setCollectionId(
+                "base1"
+        );
+
+        firstCard.setCollectionTotal(
+                2
+        );
+
+        PokemonCardCatalogEntity secondCard =
+                new PokemonCardCatalogEntity();
+
+        secondCard.setExternalId(
+                "base1-2"
+        );
+
+        secondCard.setCollectionId(
+                "base1"
+        );
+
+        secondCard.setCollectionTotal(
+                2
+        );
+
+        when(
+                pokemonCardCatalogRepository
+                        .findByCollectionId("base1")
+        ).thenReturn(
+                List.of(
+                        firstCard,
+                        secondCard
+                )
+        );
+
+        List<PokemonCardCatalogEntity> result =
+                pokemonCardCatalogService
+                        .findByCollectionId(
+                                "base1"
+                        );
+
+        assertEquals(
+                2,
+                result.size()
+        );
+
+        verifyNoInteractions(
+                pokemonTcgClient
+        );
+
+        verify(
+                pokemonCardCatalogRepository,
+                never()
+        ).saveAll(
+                anyList()
         );
     }
 
@@ -362,13 +612,115 @@ class PokemonCardCatalogServiceImplTest {
         PokemonCardCatalogEntity card =
                 new PokemonCardCatalogEntity();
 
-        card.setExternalId(externalId);
-        card.setName(name);
-        card.setCardNumber(cardNumber);
-        card.setRarity(rarity);
-        card.setCollectionId("sm1");
-        card.setCollectionName("Sun & Moon");
+        card.setExternalId(
+                externalId
+        );
+
+        card.setName(
+                name
+        );
+
+        card.setCardNumber(
+                cardNumber
+        );
+
+        card.setRarity(
+                rarity
+        );
+
+        card.setCollectionId(
+                "sm1"
+        );
+
+        card.setCollectionName(
+                "Sun & Moon"
+        );
+
+        card.setCollectionSeries(
+                "Sun & Moon"
+        );
+
+        card.setCollectionTotal(
+                1
+        );
 
         return card;
+    }
+
+    private PokemonCardApiData createPokemonCard(
+            String externalId,
+            String name
+    ) {
+        PokemonSetApiData set =
+                new PokemonSetApiData(
+                        "sv3pt5",
+                        "151",
+                        "Scarlet & Violet",
+                        3,
+                        3
+                );
+
+        return new PokemonCardApiData(
+                externalId,
+                name,
+                externalId.substring(
+                        externalId.lastIndexOf("-") + 1
+                ),
+                "Common",
+                set,
+                new PokemonCardImagesApiData(
+                        externalId + "-small",
+                        externalId + "-large"
+                )
+        );
+    }
+
+    private PokemonCardCatalogEntity toCatalogCard(
+            PokemonCardApiData card
+    ) {
+        PokemonCardCatalogEntity entity =
+                new PokemonCardCatalogEntity();
+
+        entity.setExternalId(
+                card.id()
+        );
+
+        entity.setName(
+                card.name()
+        );
+
+        entity.setCardNumber(
+                card.number()
+        );
+
+        entity.setRarity(
+                card.rarity()
+        );
+
+        if (card.set() != null) {
+            entity.setCollectionId(
+                    card.set().id()
+            );
+
+            entity.setCollectionName(
+                    card.set().name()
+            );
+
+            entity.setCollectionSeries(
+                    card.set().series()
+            );
+
+            entity.setCollectionTotal(
+                    card.set().total()
+            );
+        }
+
+        if (card.images() != null) {
+            entity.setImageUrl(
+                    card.images().large()
+            );
+        }
+
+        return entity;
     }
 }

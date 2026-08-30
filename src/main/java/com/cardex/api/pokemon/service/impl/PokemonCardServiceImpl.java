@@ -1,9 +1,6 @@
 package com.cardex.api.pokemon.service.impl;
 
-import com.cardex.api.entity.CardEntity;
-import com.cardex.api.entity.PokemonCardCatalogEntity;
-import com.cardex.api.entity.UserEntity;
-import com.cardex.api.entity.WishlistCardEntity;
+import com.cardex.api.entity.*;
 import com.cardex.api.exception.PokemonTcgApiUnavailableException;
 import com.cardex.api.pokemon.client.PokemonTcgClient;
 import com.cardex.api.pokemon.dto.PokemonCardApiResponse;
@@ -15,8 +12,10 @@ import com.cardex.api.pokemon.response.PokemonCollectionResponse;
 import com.cardex.api.pokemon.service.PokemonCardService;
 import com.cardex.api.repository.CardRepository;
 import com.cardex.api.repository.WishlistCardRepository;
+import com.cardex.api.repository.projection.CollectionOwnedCardsProjection;
 import com.cardex.api.service.AuthenticatedUserService;
 import com.cardex.api.service.PokemonCardCatalogService;
+import com.cardex.api.service.PokemonSetCatalogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
@@ -37,6 +36,7 @@ public class PokemonCardServiceImpl
     private final CardRepository cardRepository;
     private final WishlistCardRepository wishlistCardRepository;
     private final AuthenticatedUserService authenticatedUserService;
+    private final PokemonSetCatalogService pokemonSetCatalogService;
 
     @Override
     public PokemonCardSearchPageResponse searchByName(
@@ -121,24 +121,78 @@ public class PokemonCardServiceImpl
 
     @Override
     public List<PokemonCollectionResponse> findCollections() {
-        PokemonSetApiResponse apiResponse =
-                pokemonTcgClient.findSets();
+        UserEntity authenticatedUser =
+                authenticatedUserService
+                        .getAuthenticatedUser();
 
-        if (apiResponse == null
-                || apiResponse.data() == null) {
+        List<PokemonSetCatalogEntity> sets =
+                pokemonSetCatalogService.findAll();
+
+        if (sets.isEmpty()) {
             return List.of();
         }
 
-        return apiResponse
-                .data()
-                .stream()
-                .map(set ->
-                        new PokemonCollectionResponse(
-                                set.id(),
-                                set.name()
+        Map<String, Long> ownedCardsByCollection =
+                cardRepository
+                        .findOwnedCardsGroupedByCollection(
+                                authenticatedUser
                         )
-                )
+                        .stream()
+                        .collect(
+                                Collectors.toMap(
+                                        CollectionOwnedCardsProjection
+                                                ::getCollectionId,
+                                        CollectionOwnedCardsProjection
+                                                ::getOwnedCards
+                                )
+                        );
+
+        return sets
+                .stream()
+                .map(set -> {
+                    long ownedCards =
+                            ownedCardsByCollection
+                                    .getOrDefault(
+                                            set.getCollectionId(),
+                                            0L
+                                    );
+
+                    double completionPercentage =
+                            calculateCompletionPercentage(
+                                    ownedCards,
+                                    set.getTotal()
+                            );
+
+                    return new PokemonCollectionResponse(
+                            set.getCollectionId(),
+                            set.getName(),
+                            set.getSeries(),
+                            set.getPrintedTotal(),
+                            set.getTotal(),
+                            ownedCards,
+                            completionPercentage
+                    );
+                })
                 .toList();
+    }
+
+    private double calculateCompletionPercentage(
+            long ownedCards,
+            Integer totalCards
+    ) {
+        if (totalCards == null
+                || totalCards <= 0) {
+            return 0.0;
+        }
+
+        double percentage =
+                (double) ownedCards
+                        / totalCards
+                        * 100;
+
+        return Math.round(
+                percentage * 100.0
+        ) / 100.0;
     }
 
     private PokemonCardSearchPageResponse searchFromLocalCatalog(

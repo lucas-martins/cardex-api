@@ -186,4 +186,18 @@ public interface CardRepository extends
             UserEntity user,
             String collectionId
     );
+
+    @Query("""
+    select
+        card.collectionId as collectionId,
+        count(distinct card.externalId) as ownedCards
+    from CardEntity card
+    where card.user = :user
+      and card.collectionId is not null
+    group by card.collectionId
+    """)
+    List<CollectionOwnedCardsProjection>
+    findOwnedCardsGroupedByCollection(
+            UserEntity user
+    );
 }

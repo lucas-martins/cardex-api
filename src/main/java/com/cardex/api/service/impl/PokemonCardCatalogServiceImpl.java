@@ -42,20 +42,60 @@ public class PokemonCardCatalogServiceImpl
                 pokemonCardCatalogRepository
                         .findByCollectionId(collectionId);
 
-        if (!cachedCards.isEmpty()) {
+        if (isCollectionCacheComplete(cachedCards)) {
             return cachedCards;
         }
 
         List<PokemonCardApiData> pokemonCards =
                 findAllByCollectionId(collectionId);
 
-        List<PokemonCardCatalogEntity> catalogCards =
-                pokemonCards.stream()
+        Set<String> cachedExternalIds =
+                cachedCards
+                        .stream()
+                        .map(
+                                PokemonCardCatalogEntity::getExternalId
+                        )
+                        .collect(Collectors.toSet());
+
+        List<PokemonCardCatalogEntity> newCards =
+                pokemonCards
+                        .stream()
+                        .filter(card ->
+                                !cachedExternalIds.contains(
+                                        card.id()
+                                )
+                        )
                         .map(this::toEntity)
                         .toList();
 
+        if (!newCards.isEmpty()) {
+            pokemonCardCatalogRepository
+                    .saveAll(newCards);
+        }
+
         return pokemonCardCatalogRepository
-                .saveAll(catalogCards);
+                .findByCollectionId(collectionId);
+    }
+
+    private boolean isCollectionCacheComplete(
+            List<PokemonCardCatalogEntity> cachedCards
+    ) {
+        if (cachedCards.isEmpty()) {
+            return false;
+        }
+
+        Integer expectedTotal =
+                cachedCards
+                        .stream()
+                        .map(
+                                PokemonCardCatalogEntity::getCollectionTotal
+                        )
+                        .filter(total -> total != null)
+                        .findFirst()
+                        .orElse(null);
+
+        return expectedTotal != null
+                && cachedCards.size() >= expectedTotal;
     }
 
     @Override

@@ -163,7 +163,10 @@ public class PokemonTcgClient {
                         )
                         .retrieve()
                         .onStatus(
-                                HttpStatusCode::is5xxServerError,
+                                status ->
+                                        status.value() == 429
+                                                || status
+                                                .is5xxServerError(),
                                 (request, response) -> {
                                     throw new PokemonTcgApiUnavailableException();
                                 }
