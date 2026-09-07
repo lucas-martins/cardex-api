@@ -1,5 +1,6 @@
 package com.cardex.api.dto.response;
 
+import com.cardex.api.enumeration.CardCollectionSection;
 import com.cardex.api.enumeration.WishlistPriority;
 
 public record CollectionChecklistCardResponse(
@@ -12,6 +13,7 @@ public record CollectionChecklistCardResponse(
         Long cardId,
         boolean inWishlist,
         Long wishlistId,
-        WishlistPriority wishlistPriority
+        WishlistPriority wishlistPriority,
+        CardCollectionSection section
 ) {
 }

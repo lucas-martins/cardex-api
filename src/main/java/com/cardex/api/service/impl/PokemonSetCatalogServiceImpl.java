@@ -15,6 +15,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -53,6 +54,20 @@ public class PokemonSetCatalogServiceImpl
 
             throw exception;
         }
+    }
+
+    @Override
+    @Transactional
+    public Optional<PokemonSetCatalogEntity> findByCollectionId(
+            String collectionId
+    ) {
+        return findAll()
+                .stream()
+                .filter(set ->
+                        set.getCollectionId()
+                                .equals(collectionId)
+                )
+                .findFirst();
     }
 
     private boolean isCacheFresh(

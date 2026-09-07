@@ -5,10 +5,8 @@ import com.cardex.api.dto.request.CreateCardRequest;
 import com.cardex.api.dto.request.UpdateCardFavoriteRequest;
 import com.cardex.api.dto.request.UpdateCardRequest;
 import com.cardex.api.dto.response.*;
-import com.cardex.api.entity.CardEntity;
-import com.cardex.api.entity.PokemonCardCatalogEntity;
-import com.cardex.api.entity.UserEntity;
-import com.cardex.api.entity.WishlistCardEntity;
+import com.cardex.api.entity.*;
+import com.cardex.api.enumeration.CardCollectionSection;
 import com.cardex.api.enumeration.CardCondition;
 import com.cardex.api.enumeration.CardHistoryAction;
 import com.cardex.api.enumeration.CardLanguage;
@@ -20,6 +18,7 @@ import com.cardex.api.repository.WishlistCardRepository;
 import com.cardex.api.service.AuthenticatedUserService;
 import com.cardex.api.service.CardService;
 import com.cardex.api.service.PokemonCardCatalogService;
+import com.cardex.api.service.PokemonSetCatalogService;
 import com.cardex.api.specification.CardSpecification;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -50,6 +49,7 @@ public class CardServiceImpl implements CardService {
     private final CardHistoryRecorder cardHistoryRecorder;
     private final PokemonCardCatalogService pokemonCardCatalogService;
     private final WishlistCardRepository wishlistCardRepository;
+    private final PokemonSetCatalogService pokemonSetCatalogService;
 
     private static final Set<String> ALLOWED_SORT_PROPERTIES = Set.of(
             "name",
@@ -924,6 +924,21 @@ public class CardServiceImpl implements CardService {
             );
         }
 
+        PokemonSetCatalogEntity pokemonSet =
+                pokemonSetCatalogService
+                        .findByCollectionId(
+                                collectionId
+                        )
+                        .orElseThrow(
+                                () ->
+                                        new CollectionNotFoundException(
+                                                collectionId
+                                        )
+                        );
+
+        Integer printedTotal =
+                pokemonSet.getPrintedTotal();
+
         collectionCards.sort(
                 Comparator.comparing(
                         PokemonCardCatalogEntity::getCardNumber,
@@ -981,7 +996,11 @@ public class CardServiceImpl implements CardService {
                                             : null,
                                     wishlistCard != null
                                             ? wishlistCard.getPriority()
-                                            : null
+                                            : null,
+                                    determineCardCollectionSection(
+                                            catalogCard.getCardNumber(),
+                                            printedTotal
+                                    )
                             );
                         })
                         .toList();
@@ -996,6 +1015,31 @@ public class CardServiceImpl implements CardService {
                 ) / 100.0,
                 cards
         );
+    }
+
+    private CardCollectionSection determineCardCollectionSection(
+            String cardNumber,
+            Integer printedTotal
+    ) {
+        if (cardNumber == null
+                || cardNumber.isBlank()
+                || printedTotal == null
+                || printedTotal <= 0) {
+            return CardCollectionSection.ADDITIONAL;
+        }
+
+        try {
+            long number =
+                    Long.parseLong(
+                            cardNumber.trim()
+                    );
+
+            return number <= printedTotal
+                    ? CardCollectionSection.NUMBERED
+                    : CardCollectionSection.ADDITIONAL;
+        } catch (NumberFormatException exception) {
+            return CardCollectionSection.ADDITIONAL;
+        }
     }
 
     private Comparator<CardEntity> cardNumberComparator() {

@@ -5,13 +5,8 @@ import com.cardex.api.dto.request.CreateCardRequest;
 import com.cardex.api.dto.response.CardResponse;
 import com.cardex.api.dto.request.UpdateCardRequest;
 import com.cardex.api.dto.response.CollectionChecklistResponse;
-import com.cardex.api.entity.CardEntity;
-import com.cardex.api.entity.PokemonCardCatalogEntity;
-import com.cardex.api.entity.WishlistCardEntity;
-import com.cardex.api.enumeration.CardCondition;
-import com.cardex.api.enumeration.CardHistoryAction;
-import com.cardex.api.enumeration.CardLanguage;
-import com.cardex.api.enumeration.WishlistPriority;
+import com.cardex.api.entity.*;
+import com.cardex.api.enumeration.*;
 import com.cardex.api.exception.CardNotFoundException;
 import com.cardex.api.exception.CollectionNotFoundException;
 import com.cardex.api.exception.PokemonCardNotFoundException;
@@ -19,10 +14,10 @@ import com.cardex.api.mapper.CardMapper;
 import com.cardex.api.pokemon.client.PokemonTcgClient;
 import com.cardex.api.pokemon.dto.*;
 import com.cardex.api.repository.CardRepository;
-import com.cardex.api.entity.UserEntity;
 import com.cardex.api.repository.WishlistCardRepository;
 import com.cardex.api.service.AuthenticatedUserService;
 import com.cardex.api.service.PokemonCardCatalogService;
+import com.cardex.api.service.PokemonSetCatalogService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -62,6 +57,9 @@ class CardServiceImplTest {
 
     @Mock
     private WishlistCardRepository wishlistCardRepository;
+
+    @Mock
+    private PokemonSetCatalogService pokemonSetCatalogService;
 
     private CardEntity cardEntity;
     private CardResponse cardResponse;
@@ -543,6 +541,12 @@ class CardServiceImplTest {
                 "sm1"
         )).thenReturn(List.of());
 
+        when(pokemonSetCatalogService.findByCollectionId(
+                "sm1"
+        )).thenReturn(
+                Optional.of(createPokemonSetCatalog())
+        );
+
         CollectionChecklistResponse result =
                 cardService.getCollectionChecklist("sm1");
 
@@ -629,6 +633,12 @@ class CardServiceImplTest {
                 )
         );
 
+        when(pokemonSetCatalogService.findByCollectionId(
+                "sm1"
+        )).thenReturn(
+                Optional.of(createPokemonSetCatalog())
+        );
+
         CollectionChecklistResponse result =
                 cardService.getCollectionChecklist("sm1");
 
@@ -636,6 +646,18 @@ class CardServiceImplTest {
                 33.33,
                 result.completionPercentage()
         );
+    }
+
+    private PokemonSetCatalogEntity createPokemonSetCatalog() {
+        PokemonSetCatalogEntity pokemonSet =
+                new PokemonSetCatalogEntity();
+
+        pokemonSet.setCollectionId("sm1");
+        pokemonSet.setName("Sun & Moon");
+        pokemonSet.setPrintedTotal(149);
+        pokemonSet.setTotal(163);
+
+        return pokemonSet;
     }
 
     private PokemonCardCatalogEntity createCatalogCard(
@@ -753,6 +775,12 @@ class CardServiceImplTest {
                         caterpie,
                         metapod
                 )
+        );
+
+        when(pokemonSetCatalogService.findByCollectionId(
+                "sm1"
+        )).thenReturn(
+                Optional.of(createPokemonSetCatalog())
         );
 
         CollectionChecklistResponse result =
@@ -898,6 +926,12 @@ class CardServiceImplTest {
                 )
         );
 
+        when(pokemonSetCatalogService.findByCollectionId(
+                "sm1"
+        )).thenReturn(
+                Optional.of(createPokemonSetCatalog())
+        );
+
         CollectionChecklistResponse result =
                 cardService.getCollectionChecklist("sm1");
 
@@ -960,5 +994,137 @@ class CardServiceImplTest {
                 .findByCollectionId(
                         "sm1"
                 );
+    }
+
+    @Test
+    void shouldClassifyCardAsNumbered() {
+        PokemonCardCatalogEntity numberedCard =
+                createCatalogCard(
+                        "sm1-149",
+                        "Numbered Card",
+                        "149",
+                        "Rare"
+                );
+
+        when(authenticatedUserService.getAuthenticatedUser())
+                .thenReturn(user);
+
+        when(cardRepository.findByUserAndCollectionId(
+                user,
+                "sm1"
+        )).thenReturn(List.of());
+
+        when(wishlistCardRepository.findAllByUserAndCollectionId(
+                user,
+                "sm1"
+        )).thenReturn(List.of());
+
+        when(pokemonCardCatalogService.findByCollectionId(
+                "sm1"
+        )).thenReturn(
+                List.of(numberedCard)
+        );
+
+        when(pokemonSetCatalogService.findByCollectionId(
+                "sm1"
+        )).thenReturn(
+                Optional.of(createPokemonSetCatalog())
+        );
+
+        CollectionChecklistResponse result =
+                cardService.getCollectionChecklist("sm1");
+
+        assertEquals(
+                CardCollectionSection.NUMBERED,
+                result.cards().get(0).section()
+        );
+    }
+
+    @Test
+    void shouldClassifyCardAsAdditionalWhenNumberExceedsPrintedTotal() {
+        PokemonCardCatalogEntity additionalCard =
+                createCatalogCard(
+                        "sm1-150",
+                        "Additional Card",
+                        "150",
+                        "Rare"
+                );
+
+        when(authenticatedUserService.getAuthenticatedUser())
+                .thenReturn(user);
+
+        when(cardRepository.findByUserAndCollectionId(
+                user,
+                "sm1"
+        )).thenReturn(List.of());
+
+        when(wishlistCardRepository.findAllByUserAndCollectionId(
+                user,
+                "sm1"
+        )).thenReturn(List.of());
+
+        when(pokemonCardCatalogService.findByCollectionId(
+                "sm1"
+        )).thenReturn(
+                List.of(additionalCard)
+        );
+
+        when(pokemonSetCatalogService.findByCollectionId(
+                "sm1"
+        )).thenReturn(
+                Optional.of(createPokemonSetCatalog())
+        );
+
+        CollectionChecklistResponse result =
+                cardService.getCollectionChecklist("sm1");
+
+        assertEquals(
+                CardCollectionSection.ADDITIONAL,
+                result.cards().get(0).section()
+        );
+    }
+
+    @Test
+    void shouldClassifyCardAsAdditionalWhenCardNumberIsNonNumeric() {
+        PokemonCardCatalogEntity additionalCard =
+                createCatalogCard(
+                        "sm1-TG01",
+                        "Special Card",
+                        "TG01",
+                        "Rare"
+                );
+
+        when(authenticatedUserService.getAuthenticatedUser())
+                .thenReturn(user);
+
+        when(cardRepository.findByUserAndCollectionId(
+                user,
+                "sm1"
+        )).thenReturn(List.of());
+
+        when(wishlistCardRepository.findAllByUserAndCollectionId(
+                user,
+                "sm1"
+        )).thenReturn(List.of());
+
+        when(pokemonCardCatalogService.findByCollectionId(
+                "sm1"
+        )).thenReturn(
+                List.of(additionalCard)
+        );
+
+        when(pokemonSetCatalogService.findByCollectionId(
+                "sm1"
+        )).thenReturn(
+                Optional.of(createPokemonSetCatalog())
+        );
+
+        CollectionChecklistResponse result =
+                cardService.getCollectionChecklist("sm1");
+
+        assertEquals(
+                CardCollectionSection.ADDITIONAL,
+                result.cards().get(0).section()
+        );
     }
 }
