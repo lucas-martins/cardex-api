@@ -8,6 +8,10 @@ public record CollectionChecklistResponse(
         long ownedUniqueCards,
         long totalCards,
         double completionPercentage,
+        long ownedNumberedCards,
+        long numberedCards,
+        long ownedAdditionalCards,
+        long additionalCards,
         List<CollectionChecklistCardResponse> cards
 ) {
 }

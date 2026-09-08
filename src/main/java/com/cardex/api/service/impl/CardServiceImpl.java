@@ -1005,6 +1005,40 @@ public class CardServiceImpl implements CardService {
                         })
                         .toList();
 
+        long numberedCards =
+                cards.stream()
+                        .filter(card ->
+                                card.section()
+                                        == CardCollectionSection.NUMBERED
+                        )
+                        .count();
+
+        long additionalCards =
+                cards.stream()
+                        .filter(card ->
+                                card.section()
+                                        == CardCollectionSection.ADDITIONAL
+                        )
+                        .count();
+
+        long ownedNumberedCards =
+                cards.stream()
+                        .filter(CollectionChecklistCardResponse::owned)
+                        .filter(card ->
+                                card.section()
+                                        == CardCollectionSection.NUMBERED
+                        )
+                        .count();
+
+        long ownedAdditionalCards =
+                cards.stream()
+                        .filter(CollectionChecklistCardResponse::owned)
+                        .filter(card ->
+                                card.section()
+                                        == CardCollectionSection.ADDITIONAL
+                        )
+                        .count();
+
         return new CollectionChecklistResponse(
                 collectionId,
                 collectionName,
@@ -1013,6 +1047,10 @@ public class CardServiceImpl implements CardService {
                 Math.round(
                         completionPercentage * 100.0
                 ) / 100.0,
+                ownedNumberedCards,
+                numberedCards,
+                ownedAdditionalCards,
+                additionalCards,
                 cards
         );
     }
