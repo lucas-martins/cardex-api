@@ -12,7 +12,10 @@ import com.cardex.api.enumeration.CardHistoryAction;
 import com.cardex.api.enumeration.CardLanguage;
 import com.cardex.api.exception.CardNotFoundException;
 import com.cardex.api.exception.CollectionNotFoundException;
+import com.cardex.api.exception.PokemonCardNotFoundException;
+import com.cardex.api.exception.PokemonTcgApiUnavailableException;
 import com.cardex.api.mapper.CardMapper;
+import com.cardex.api.pokemon.PokemonCardPriceExtractor;
 import com.cardex.api.repository.CardRepository;
 import com.cardex.api.repository.WishlistCardRepository;
 import com.cardex.api.service.AuthenticatedUserService;
@@ -29,12 +32,18 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cardex.api.repository.projection.CollectionValueByCollectionProjection;
+import com.cardex.api.repository.projection.CollectionValueProjection;
+
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -115,7 +124,7 @@ public class CardServiceImpl implements CardService {
                         + "."
         );
 
-        return cardMapper.toResponse(updatedCard);
+        return toPricedResponse(updatedCard);
     }
 
     private CardResponse createNewCard(
@@ -175,7 +184,7 @@ public class CardServiceImpl implements CardService {
                 "Card added to collection."
         );
 
-        return cardMapper.toResponse(savedCard);
+        return toPricedResponse(savedCard, pokemonCard);
     }
 
     @Override
@@ -248,16 +257,16 @@ public class CardServiceImpl implements CardService {
                                 )
                         );
 
-        return cardRepository
-                .findAll(
+        return enrichPage(
+                cardRepository.findAll(
                         specification,
                         pageable
                 )
-                .map(cardMapper::toResponse);
+        );
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public CardResponse findById(Long id) {
         UserEntity authenticatedUser =
                 authenticatedUserService.getAuthenticatedUser();
@@ -273,7 +282,7 @@ public class CardServiceImpl implements CardService {
                                         new CardNotFoundException(id)
                         );
 
-        return cardMapper.toResponse(cardEntity);
+        return toPricedResponse(cardEntity);
     }
 
     @Override
@@ -318,7 +327,7 @@ public class CardServiceImpl implements CardService {
             );
         }
 
-        return cardMapper.toResponse(updatedCard);
+        return toPricedResponse(updatedCard);
     }
 
     @Override
@@ -393,12 +402,35 @@ public class CardServiceImpl implements CardService {
                         )
                         .orElse(null);
 
+        CollectionValueProjection collectionValue =
+                cardRepository.sumCollectionValue(
+                        authenticatedUser
+                );
+
         return new CollectionSummaryResponse(
                 uniqueCards,
                 totalCards,
                 differentLanguages,
                 differentCollections,
-                mostOwnedCard
+                mostOwnedCard,
+                zeroIfNull(
+                        collectionValue != null
+                                ? collectionValue.getEstimatedValueUsd()
+                                : null
+                ),
+                zeroIfNull(
+                        collectionValue != null
+                                ? collectionValue.getEstimatedValueEur()
+                                : null
+                ),
+                collectionValue != null
+                        && collectionValue.getPricedCopies() != null
+                        ? collectionValue.getPricedCopies()
+                        : 0L,
+                collectionValue != null
+                        && collectionValue.getUnpricedCopies() != null
+                        ? collectionValue.getUnpricedCopies()
+                        : 0L
         );
     }
 
@@ -491,7 +523,7 @@ public class CardServiceImpl implements CardService {
                 description
         );
 
-        return cardMapper.toResponse(updatedCard);
+        return toPricedResponse(updatedCard);
     }
 
     @Override
@@ -556,11 +588,31 @@ public class CardServiceImpl implements CardService {
                         )
                         .toList();
 
+        List<CollectionValueItemResponse> collectionValues =
+                cardRepository
+                        .findEstimatedValueGroupedByCollection(
+                                authenticatedUser
+                        )
+                        .stream()
+                        .map(item ->
+                                new CollectionValueItemResponse(
+                                        item.getCollectionName(),
+                                        zeroIfNull(
+                                                item.getEstimatedValueUsd()
+                                        ),
+                                        zeroIfNull(
+                                                item.getEstimatedValueEur()
+                                        )
+                                )
+                        )
+                        .toList();
+
         return new CollectionAnalyticsResponse(
                 collections,
                 languages,
                 conditions,
-                rarities
+                rarities,
+                collectionValues
         );
     }
 
@@ -710,6 +762,18 @@ public class CardServiceImpl implements CardService {
         UserEntity authenticatedUser =
                 authenticatedUserService.getAuthenticatedUser();
 
+        Map<String, CollectionValueByCollectionProjection> valuesByCollection =
+                cardRepository
+                        .findEstimatedValueGroupedByCollection(
+                                authenticatedUser
+                        )
+                        .stream()
+                        .collect(Collectors.toMap(
+                                CollectionValueByCollectionProjection::getCollectionId,
+                                Function.identity(),
+                                (first, second) -> first
+                        ));
+
         return cardRepository
                 .findCollectionProgress(
                         authenticatedUser
@@ -728,6 +792,11 @@ public class CardServiceImpl implements CardService {
                                       / totalCards
                                     : 0.0;
 
+                    CollectionValueByCollectionProjection collectionValue =
+                            valuesByCollection.get(
+                                    item.getCollectionId()
+                            );
+
                     return new CollectionProgressResponse(
                             item.getCollectionId(),
                             item.getCollectionName(),
@@ -736,7 +805,17 @@ public class CardServiceImpl implements CardService {
                             Math.round(
                                     completionPercentage
                                             * 100.0
-                            ) / 100.0
+                            ) / 100.0,
+                            collectionValue != null
+                                    ? zeroIfNull(
+                                            collectionValue.getEstimatedValueUsd()
+                                    )
+                                    : BigDecimal.ZERO.setScale(2),
+                            collectionValue != null
+                                    ? zeroIfNull(
+                                            collectionValue.getEstimatedValueEur()
+                                    )
+                                    : BigDecimal.ZERO.setScale(2)
                     );
                 })
                 .toList();
@@ -964,46 +1043,94 @@ public class CardServiceImpl implements CardService {
                           / totalCards
                         : 0.0;
 
+        BigDecimal estimatedOwnedValueUsd =
+                BigDecimal.ZERO.setScale(2);
+        BigDecimal estimatedOwnedValueEur =
+                BigDecimal.ZERO.setScale(2);
+        BigDecimal estimatedMissingValueUsd =
+                BigDecimal.ZERO.setScale(2);
+        BigDecimal estimatedMissingValueEur =
+                BigDecimal.ZERO.setScale(2);
+
         List<CollectionChecklistCardResponse> cards =
-                collectionCards
-                        .stream()
-                        .map(catalogCard -> {
-                            CardEntity ownedCard =
-                                    ownedCardsByExternalId.get(
-                                            catalogCard
-                                                    .getExternalId()
-                                    );
+                new ArrayList<>();
 
-                            WishlistCardEntity wishlistCard =
-                                    wishlistCardsByExternalId.get(
-                                            catalogCard
-                                                    .getExternalId()
-                                    );
+        for (PokemonCardCatalogEntity catalogCard : collectionCards) {
+            CardEntity ownedCard =
+                    ownedCardsByExternalId.get(
+                            catalogCard.getExternalId()
+                    );
 
-                            return new CollectionChecklistCardResponse(
-                                    catalogCard.getExternalId(),
-                                    catalogCard.getName(),
+            WishlistCardEntity wishlistCard =
+                    wishlistCardsByExternalId.get(
+                            catalogCard.getExternalId()
+                    );
+
+            if (ownedCard != null) {
+                estimatedOwnedValueUsd =
+                        addAmount(
+                                estimatedOwnedValueUsd,
+                                PokemonCardPriceExtractor.multiply(
+                                        catalogCard.getMarketPriceUsd(),
+                                        ownedCard.getQuantity()
+                                )
+                        );
+
+                estimatedOwnedValueEur =
+                        addAmount(
+                                estimatedOwnedValueEur,
+                                PokemonCardPriceExtractor.multiply(
+                                        catalogCard.getMarketPriceEur(),
+                                        ownedCard.getQuantity()
+                                )
+                        );
+            } else {
+                estimatedMissingValueUsd =
+                        addAmount(
+                                estimatedMissingValueUsd,
+                                PokemonCardPriceExtractor.multiply(
+                                        catalogCard.getMarketPriceUsd(),
+                                        1
+                                )
+                        );
+
+                estimatedMissingValueEur =
+                        addAmount(
+                                estimatedMissingValueEur,
+                                PokemonCardPriceExtractor.multiply(
+                                        catalogCard.getMarketPriceEur(),
+                                        1
+                                )
+                        );
+            }
+
+            cards.add(
+                    new CollectionChecklistCardResponse(
+                            catalogCard.getExternalId(),
+                            catalogCard.getName(),
+                            catalogCard.getCardNumber(),
+                            catalogCard.getRarity(),
+                            catalogCard.getImageUrl(),
+                            ownedCard != null,
+                            ownedCard != null
+                                    ? ownedCard.getId()
+                                    : null,
+                            wishlistCard != null,
+                            wishlistCard != null
+                                    ? wishlistCard.getId()
+                                    : null,
+                            wishlistCard != null
+                                    ? wishlistCard.getPriority()
+                                    : null,
+                            determineCardCollectionSection(
                                     catalogCard.getCardNumber(),
-                                    catalogCard.getRarity(),
-                                    catalogCard.getImageUrl(),
-                                    ownedCard != null,
-                                    ownedCard != null
-                                            ? ownedCard.getId()
-                                            : null,
-                                    wishlistCard != null,
-                                    wishlistCard != null
-                                            ? wishlistCard.getId()
-                                            : null,
-                                    wishlistCard != null
-                                            ? wishlistCard.getPriority()
-                                            : null,
-                                    determineCardCollectionSection(
-                                            catalogCard.getCardNumber(),
-                                            printedTotal
-                                    )
-                            );
-                        })
-                        .toList();
+                                    printedTotal
+                            ),
+                            catalogCard.getMarketPriceUsd(),
+                            catalogCard.getMarketPriceEur()
+                    )
+            );
+        }
 
         long numberedCards =
                 cards.stream()
@@ -1051,6 +1178,10 @@ public class CardServiceImpl implements CardService {
                 numberedCards,
                 ownedAdditionalCards,
                 additionalCards,
+                estimatedOwnedValueUsd,
+                estimatedOwnedValueEur,
+                estimatedMissingValueUsd,
+                estimatedMissingValueEur,
                 cards
         );
     }
@@ -1226,6 +1357,89 @@ public class CardServiceImpl implements CardService {
                 " ",
                 changes
         );
+    }
+
+    private Page<CardResponse> enrichPage(
+            Page<CardEntity> page
+    ) {
+        List<String> externalIds =
+                page.getContent()
+                        .stream()
+                        .map(CardEntity::getExternalId)
+                        .filter(Objects::nonNull)
+                        .distinct()
+                        .toList();
+
+        Map<String, PokemonCardCatalogEntity> catalogByExternalId =
+                Optional.ofNullable(
+                                pokemonCardCatalogService
+                                        .findAllByExternalIdIn(externalIds)
+                        )
+                        .orElse(List.of())
+                        .stream()
+                        .collect(Collectors.toMap(
+                                PokemonCardCatalogEntity::getExternalId,
+                                Function.identity(),
+                                (first, second) -> first
+                        ));
+
+        return page.map(card ->
+                PokemonCardPriceExtractor.enrich(
+                        cardMapper.toResponse(card),
+                        catalogByExternalId.get(
+                                card.getExternalId()
+                        ),
+                        card.getQuantity()
+                )
+        );
+    }
+
+    private CardResponse toPricedResponse(
+            CardEntity card
+    ) {
+        if (card.getExternalId() == null) {
+            return cardMapper.toResponse(card);
+        }
+
+        try {
+            PokemonCardCatalogEntity catalog =
+                    pokemonCardCatalogService.findByExternalId(
+                            card.getExternalId()
+                    );
+
+            return toPricedResponse(card, catalog);
+        } catch (PokemonCardNotFoundException
+                 | PokemonTcgApiUnavailableException exception) {
+            return cardMapper.toResponse(card);
+        }
+    }
+
+    private CardResponse toPricedResponse(
+            CardEntity card,
+            PokemonCardCatalogEntity catalog
+    ) {
+        return PokemonCardPriceExtractor.enrich(
+                cardMapper.toResponse(card),
+                catalog,
+                card.getQuantity()
+        );
+    }
+
+    private BigDecimal zeroIfNull(BigDecimal value) {
+        return value != null
+                ? value
+                : BigDecimal.ZERO.setScale(2);
+    }
+
+    private BigDecimal addAmount(
+            BigDecimal total,
+            BigDecimal value
+    ) {
+        if (value == null) {
+            return total;
+        }
+
+        return total.add(value);
     }
 
     private void removeFromWishlistIfPresent(

@@ -5,10 +5,11 @@ import com.cardex.api.enumeration.CardLanguage;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Getter
-@Builder
+@Builder(toBuilder = true)
 public class CardResponse {
 
     private Long id;
@@ -27,4 +28,8 @@ public class CardResponse {
     private boolean favorite;
     private String collectionId;
     private Integer collectionTotal;
+    private BigDecimal marketPriceUsd;
+    private BigDecimal marketPriceEur;
+    private BigDecimal estimatedValueUsd;
+    private BigDecimal estimatedValueEur;
 }

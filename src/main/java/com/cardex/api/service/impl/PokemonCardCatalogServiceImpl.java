@@ -2,6 +2,8 @@ package com.cardex.api.service.impl;
 
 import com.cardex.api.entity.PokemonCardCatalogEntity;
 import com.cardex.api.exception.PokemonCardNotFoundException;
+import com.cardex.api.exception.PokemonTcgApiUnavailableException;
+import com.cardex.api.pokemon.PokemonCardPriceExtractor;
 import com.cardex.api.pokemon.client.PokemonTcgClient;
 import com.cardex.api.pokemon.dto.PokemonCardApiData;
 import com.cardex.api.pokemon.dto.PokemonCardApiResponse;
@@ -16,9 +18,12 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -27,6 +32,8 @@ public class PokemonCardCatalogServiceImpl
         implements PokemonCardCatalogService {
 
     private static final int PAGE_SIZE = 250;
+
+    private static final int PRICE_STALE_DAYS = 7;
 
     private final PokemonCardCatalogRepository
             pokemonCardCatalogRepository;
@@ -43,6 +50,13 @@ public class PokemonCardCatalogServiceImpl
                         .findByCollectionId(collectionId);
 
         if (isCollectionCacheComplete(cachedCards)) {
+            if (needsCollectionPriceRefresh(cachedCards)) {
+                refreshCollectionPrices(collectionId, cachedCards);
+
+                return pokemonCardCatalogRepository
+                        .findByCollectionId(collectionId);
+            }
+
             return cachedCards;
         }
 
@@ -98,6 +112,96 @@ public class PokemonCardCatalogServiceImpl
                 && cachedCards.size() >= expectedTotal;
     }
 
+    private boolean needsCollectionPriceRefresh(
+            List<PokemonCardCatalogEntity> cachedCards
+    ) {
+        return cachedCards
+                .stream()
+                .anyMatch(card ->
+                        card.getPriceUpdatedAt() == null
+                );
+    }
+
+    private void refreshCollectionPrices(
+            String collectionId,
+            List<PokemonCardCatalogEntity> cachedCards
+    ) {
+        List<PokemonCardApiData> pokemonCards;
+
+        try {
+            pokemonCards =
+                    findAllByCollectionId(collectionId);
+        } catch (PokemonTcgApiUnavailableException exception) {
+            markPricesChecked(cachedCards);
+            return;
+        }
+
+        Map<String, PokemonCardCatalogEntity> cachedByExternalId =
+                cachedCards
+                        .stream()
+                        .collect(Collectors.toMap(
+                                PokemonCardCatalogEntity::getExternalId,
+                                Function.identity(),
+                                (first, second) -> first
+                        ));
+
+        List<PokemonCardCatalogEntity> updatedCards =
+                new ArrayList<>();
+
+        for (PokemonCardApiData card : pokemonCards) {
+            PokemonCardCatalogEntity cachedCard =
+                    cachedByExternalId.get(card.id());
+
+            if (cachedCard == null) {
+                continue;
+            }
+
+            PokemonCardPriceExtractor.applyToCatalog(
+                    cachedCard,
+                    card
+            );
+
+            updatedCards.add(cachedCard);
+        }
+
+        Set<String> refreshedExternalIds =
+                pokemonCards
+                        .stream()
+                        .map(PokemonCardApiData::id)
+                        .collect(Collectors.toSet());
+
+        List<PokemonCardCatalogEntity> uncheckedCards =
+                cachedCards
+                        .stream()
+                        .filter(card ->
+                                !refreshedExternalIds.contains(
+                                        card.getExternalId()
+                                )
+                        )
+                        .toList();
+
+        markPricesChecked(uncheckedCards);
+        updatedCards.addAll(uncheckedCards);
+
+        if (!updatedCards.isEmpty()) {
+            pokemonCardCatalogRepository.saveAll(
+                    updatedCards
+            );
+        }
+    }
+
+    private void markPricesChecked(
+            List<PokemonCardCatalogEntity> cards
+    ) {
+        LocalDateTime now = LocalDateTime.now();
+
+        for (PokemonCardCatalogEntity card : cards) {
+            if (card.getPriceUpdatedAt() == null) {
+                card.setPriceUpdatedAt(now);
+            }
+        }
+    }
+
     @Override
     @Transactional
     public PokemonCardCatalogEntity findByExternalId(
@@ -105,9 +209,70 @@ public class PokemonCardCatalogServiceImpl
     ) {
         return pokemonCardCatalogRepository
                 .findByExternalId(externalId)
+                .map(this::refreshPricesIfNeeded)
                 .orElseGet(() -> loadAndSaveByExternalId(
                         externalId
                 ));
+    }
+
+    private PokemonCardCatalogEntity refreshPricesIfNeeded(
+            PokemonCardCatalogEntity cachedCard
+    ) {
+        if (!isPriceStale(cachedCard)) {
+            return cachedCard;
+        }
+
+        try {
+            PokemonCardApiSingleResponse response =
+                    pokemonTcgClient.findById(
+                            cachedCard.getExternalId()
+                    );
+
+            if (response != null
+                    && response.data() != null) {
+                PokemonCardPriceExtractor.applyToCatalog(
+                        cachedCard,
+                        response.data()
+                );
+
+                return pokemonCardCatalogRepository.save(
+                        cachedCard
+                );
+            }
+        } catch (PokemonTcgApiUnavailableException
+                 | PokemonCardNotFoundException exception) {
+            cachedCard.setPriceUpdatedAt(
+                    LocalDateTime.now()
+            );
+
+            return pokemonCardCatalogRepository.save(
+                    cachedCard
+            );
+        }
+
+        cachedCard.setPriceUpdatedAt(
+                LocalDateTime.now()
+        );
+
+        return pokemonCardCatalogRepository.save(
+                cachedCard
+        );
+    }
+
+    private boolean isPriceStale(
+            PokemonCardCatalogEntity cachedCard
+    ) {
+        if (cachedCard.getPriceUpdatedAt() == null) {
+            return true;
+        }
+
+        return cachedCard
+                .getPriceUpdatedAt()
+                .isBefore(
+                        LocalDateTime.now().minusDays(
+                                PRICE_STALE_DAYS
+                        )
+                );
     }
 
     private PokemonCardCatalogEntity loadAndSaveByExternalId(
@@ -204,6 +369,11 @@ public class PokemonCardCatalogServiceImpl
             );
         }
 
+        PokemonCardPriceExtractor.applyToCatalog(
+                entity,
+                card
+        );
+
         return entity;
     }
 
@@ -222,30 +392,44 @@ public class PokemonCardCatalogServiceImpl
                         .distinct()
                         .toList();
 
-        Set<String> existingExternalIds =
+        List<PokemonCardCatalogEntity> existingCards =
                 pokemonCardCatalogRepository
                         .findAllByExternalIdIn(
                                 externalIds
-                        )
+                        );
+
+        Map<String, PokemonCardCatalogEntity> existingByExternalId =
+                existingCards
                         .stream()
-                        .map(
-                                PokemonCardCatalogEntity::getExternalId
-                        )
-                        .collect(Collectors.toSet());
+                        .collect(Collectors.toMap(
+                                PokemonCardCatalogEntity::getExternalId,
+                                Function.identity(),
+                                (first, second) -> first
+                        ));
 
-        List<PokemonCardCatalogEntity> newCards =
-                cards.stream()
-                        .filter(card ->
-                                !existingExternalIds.contains(
-                                        card.id()
-                                )
-                        )
-                        .map(this::toEntity)
-                        .toList();
+        List<PokemonCardCatalogEntity> cardsToSave =
+                new ArrayList<>();
 
-        if (!newCards.isEmpty()) {
+        for (PokemonCardApiData card : cards) {
+            PokemonCardCatalogEntity existingCard =
+                    existingByExternalId.get(card.id());
+
+            if (existingCard == null) {
+                cardsToSave.add(toEntity(card));
+                continue;
+            }
+
+            PokemonCardPriceExtractor.applyToCatalog(
+                    existingCard,
+                    card
+            );
+
+            cardsToSave.add(existingCard);
+        }
+
+        if (!cardsToSave.isEmpty()) {
             pokemonCardCatalogRepository.saveAll(
-                    newCards
+                    cardsToSave
             );
         }
     }
@@ -271,6 +455,21 @@ public class PokemonCardCatalogServiceImpl
                 .findByNameContainingIgnoreCase(
                         name.trim(),
                         pageable
+                );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PokemonCardCatalogEntity> findAllByExternalIdIn(
+            List<String> externalIds
+    ) {
+        if (externalIds == null || externalIds.isEmpty()) {
+            return List.of();
+        }
+
+        return pokemonCardCatalogRepository
+                .findAllByExternalIdIn(
+                        externalIds
                 );
     }
 }

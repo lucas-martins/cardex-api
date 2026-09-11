@@ -2,6 +2,7 @@ package com.cardex.api.dto.wishlist;
 
 import com.cardex.api.enumeration.WishlistPriority;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public record WishlistCardResponse(
@@ -16,6 +17,8 @@ public record WishlistCardResponse(
         String imageUrl,
         WishlistPriority priority,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        BigDecimal marketPriceUsd,
+        BigDecimal marketPriceEur
 ) {
 }

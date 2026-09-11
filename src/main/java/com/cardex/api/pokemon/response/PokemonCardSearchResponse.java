@@ -2,6 +2,8 @@ package com.cardex.api.pokemon.response;
 
 import com.cardex.api.enumeration.WishlistPriority;
 
+import java.math.BigDecimal;
+
 public record PokemonCardSearchResponse(
         String externalId,
         String name,
@@ -13,6 +15,8 @@ public record PokemonCardSearchResponse(
         Long cardId,
         boolean inWishlist,
         Long wishlistId,
-        WishlistPriority wishlistPriority
+        WishlistPriority wishlistPriority,
+        BigDecimal marketPriceUsd,
+        BigDecimal marketPriceEur
 ) {
 }

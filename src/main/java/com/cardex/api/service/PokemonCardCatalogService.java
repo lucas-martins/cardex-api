@@ -25,4 +25,8 @@ public interface PokemonCardCatalogService {
             int page,
             int size
     );
+
+    List<PokemonCardCatalogEntity> findAllByExternalIdIn(
+            List<String> externalIds
+    );
 }

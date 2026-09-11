@@ -45,6 +45,10 @@ class PokemonCardCatalogServiceImplTest {
                         "Common"
                 );
 
+        cachedCard.setPriceUpdatedAt(
+                java.time.LocalDateTime.now()
+        );
+
         when(
                 pokemonCardCatalogRepository
                         .findByCollectionId("sm1")
@@ -103,7 +107,9 @@ class PokemonCardCatalogServiceImplTest {
                         new PokemonCardImagesApiData(
                                 "caterpie-small",
                                 "caterpie-large"
-                        )
+                        ),
+                        null,
+                        null
                 );
 
         PokemonCardApiData metapod =
@@ -116,7 +122,9 @@ class PokemonCardCatalogServiceImplTest {
                         new PokemonCardImagesApiData(
                                 "metapod-small",
                                 "metapod-large"
-                        )
+                        ),
+                        null,
+                        null
                 );
 
         PokemonCardApiResponse response =
@@ -259,6 +267,8 @@ class PokemonCardCatalogServiceImplTest {
                         "1",
                         "Common",
                         set,
+                        null,
+                        null,
                         null
                 );
 
@@ -269,6 +279,8 @@ class PokemonCardCatalogServiceImplTest {
                         "251",
                         "Rare",
                         set,
+                        null,
+                        null,
                         null
                 );
 
@@ -570,6 +582,14 @@ class PokemonCardCatalogServiceImplTest {
                 2
         );
 
+        firstCard.setPriceUpdatedAt(
+                java.time.LocalDateTime.now()
+        );
+
+        secondCard.setPriceUpdatedAt(
+                java.time.LocalDateTime.now()
+        );
+
         when(
                 pokemonCardCatalogRepository
                         .findByCollectionId("base1")
@@ -671,7 +691,9 @@ class PokemonCardCatalogServiceImplTest {
                 new PokemonCardImagesApiData(
                         externalId + "-small",
                         externalId + "-large"
-                )
+                ),
+                null,
+                null
         );
     }
 

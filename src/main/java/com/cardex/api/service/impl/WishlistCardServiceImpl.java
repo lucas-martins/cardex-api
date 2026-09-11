@@ -19,6 +19,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import com.cardex.api.pokemon.PokemonCardPriceExtractor;
 
 @Service
 @RequiredArgsConstructor
@@ -94,7 +100,10 @@ public class WishlistCardServiceImpl
         WishlistCardEntity savedEntity =
                 repository.save(entity);
 
-        return mapper.toResponse(savedEntity);
+        return PokemonCardPriceExtractor.enrich(
+                mapper.toResponse(savedEntity),
+                pokemonCard
+        );
     }
 
     @Override
@@ -104,13 +113,12 @@ public class WishlistCardServiceImpl
                 authenticatedUserService
                         .getAuthenticatedUser();
 
-        return repository
-                .findAllByUserOrderByCreatedAtDesc(
+        List<WishlistCardEntity> wishlistCards =
+                repository.findAllByUserOrderByCreatedAtDesc(
                         authenticatedUser
-                )
-                .stream()
-                .map(mapper::toResponse)
-                .toList();
+                );
+
+        return enrichAll(wishlistCards);
     }
 
     @Override
@@ -163,6 +171,49 @@ public class WishlistCardServiceImpl
         WishlistCardEntity updatedEntity =
                 repository.save(entity);
 
-        return mapper.toResponse(updatedEntity);
+        return enrich(updatedEntity);
+    }
+
+    private List<WishlistCardResponse> enrichAll(
+            List<WishlistCardEntity> wishlistCards
+    ) {
+        List<String> externalIds =
+                wishlistCards
+                        .stream()
+                        .map(WishlistCardEntity::getExternalId)
+                        .filter(id -> id != null)
+                        .distinct()
+                        .toList();
+
+        Map<String, PokemonCardCatalogEntity> catalogByExternalId =
+                Optional.ofNullable(
+                                pokemonCardCatalogService
+                                        .findAllByExternalIdIn(externalIds)
+                        )
+                        .orElse(List.of())
+                        .stream()
+                        .collect(Collectors.toMap(
+                                PokemonCardCatalogEntity::getExternalId,
+                                Function.identity(),
+                                (first, second) -> first
+                        ));
+
+        return wishlistCards
+                .stream()
+                .map(card ->
+                        PokemonCardPriceExtractor.enrich(
+                                mapper.toResponse(card),
+                                catalogByExternalId.get(
+                                        card.getExternalId()
+                                )
+                        )
+                )
+                .toList();
+    }
+
+    private WishlistCardResponse enrich(
+            WishlistCardEntity entity
+    ) {
+        return enrichAll(List.of(entity)).get(0);
     }
 }

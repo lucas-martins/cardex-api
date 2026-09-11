@@ -18,7 +18,7 @@ import com.cardex.api.pokemon.dto.PokemonSetApiResponse;
 public class PokemonTcgClient {
 
     private static final String SELECTED_FIELDS =
-            "id,name,number,rarity,set,images";
+            "id,name,number,rarity,set,images,tcgplayer,cardmarket";
 
     private static final int MAX_ATTEMPTS = 3;
 

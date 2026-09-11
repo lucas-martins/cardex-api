@@ -6,6 +6,8 @@ public record PokemonCardApiData(
         String number,
         String rarity,
         PokemonSetApiData set,
-        PokemonCardImagesApiData images
+        PokemonCardImagesApiData images,
+        PokemonTcgPlayerApiData tcgplayer,
+        PokemonCardmarketApiData cardmarket
 ) {
 }

@@ -9,6 +9,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
 @Entity
 @Table(
         name = "pokemon_card_catalog",
@@ -76,4 +79,21 @@ public class PokemonCardCatalogEntity extends BaseEntity {
             length = 1000
     )
     private String imageUrl;
+
+    @Column(
+            name = "market_price_usd",
+            precision = 12,
+            scale = 2
+    )
+    private BigDecimal marketPriceUsd;
+
+    @Column(
+            name = "market_price_eur",
+            precision = 12,
+            scale = 2
+    )
+    private BigDecimal marketPriceEur;
+
+    @Column(name = "price_updated_at")
+    private LocalDateTime priceUpdatedAt;
 }

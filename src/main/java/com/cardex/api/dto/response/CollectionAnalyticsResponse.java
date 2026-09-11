@@ -6,6 +6,7 @@ public record CollectionAnalyticsResponse(
         List<CollectionAnalyticsItemResponse> collections,
         List<CollectionAnalyticsItemResponse> languages,
         List<CollectionAnalyticsItemResponse> conditions,
-        List<CollectionAnalyticsItemResponse> rarities
+        List<CollectionAnalyticsItemResponse> rarities,
+        List<CollectionValueItemResponse> collectionValues
 ) {
 }

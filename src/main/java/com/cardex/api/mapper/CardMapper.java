@@ -21,6 +21,10 @@ public interface CardMapper {
     @Mapping(target = "updatedAt", ignore = true)
     CardEntity toEntity(CreateCardRequest request);
 
+    @Mapping(target = "marketPriceUsd", ignore = true)
+    @Mapping(target = "marketPriceEur", ignore = true)
+    @Mapping(target = "estimatedValueUsd", ignore = true)
+    @Mapping(target = "estimatedValueEur", ignore = true)
     CardResponse toResponse(CardEntity entity);
 
     @Mapping(target = "id", ignore = true)

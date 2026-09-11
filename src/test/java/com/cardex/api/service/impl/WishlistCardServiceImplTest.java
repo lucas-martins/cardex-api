@@ -401,7 +401,9 @@ class WishlistCardServiceImplTest {
                 "image-url",
                 priority,
                 LocalDateTime.now(),
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                null,
+                null
         );
     }
 }

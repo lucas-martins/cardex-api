@@ -200,4 +200,67 @@ public interface CardRepository extends
     findOwnedCardsGroupedByCollection(
             UserEntity user
     );
+
+    @Query("""
+    select
+        coalesce(sum(case
+            when catalog.marketPriceUsd is not null
+            then card.quantity * catalog.marketPriceUsd
+            else 0
+        end), 0) as estimatedValueUsd,
+        coalesce(sum(case
+            when catalog.marketPriceEur is not null
+            then card.quantity * catalog.marketPriceEur
+            else 0
+        end), 0) as estimatedValueEur,
+        coalesce(sum(case
+            when catalog.marketPriceUsd is not null
+              or catalog.marketPriceEur is not null
+            then card.quantity
+            else 0
+        end), 0) as pricedCopies,
+        coalesce(sum(case
+            when catalog.marketPriceUsd is null
+             and catalog.marketPriceEur is null
+            then card.quantity
+            else 0
+        end), 0) as unpricedCopies
+    from CardEntity card
+    left join PokemonCardCatalogEntity catalog
+        on catalog.externalId = card.externalId
+    where card.user = :user
+    """)
+    CollectionValueProjection sumCollectionValue(UserEntity user);
+
+    @Query("""
+    select
+        card.collectionId as collectionId,
+        card.collectionName as collectionName,
+        coalesce(sum(case
+            when catalog.marketPriceUsd is not null
+            then card.quantity * catalog.marketPriceUsd
+            else 0
+        end), 0) as estimatedValueUsd,
+        coalesce(sum(case
+            when catalog.marketPriceEur is not null
+            then card.quantity * catalog.marketPriceEur
+            else 0
+        end), 0) as estimatedValueEur
+    from CardEntity card
+    left join PokemonCardCatalogEntity catalog
+        on catalog.externalId = card.externalId
+    where card.user = :user
+      and card.collectionId is not null
+    group by
+        card.collectionId,
+        card.collectionName
+    order by coalesce(sum(case
+            when catalog.marketPriceUsd is not null
+            then card.quantity * catalog.marketPriceUsd
+            else 0
+        end), 0) desc,
+        card.collectionName asc
+    """)
+    List<CollectionValueByCollectionProjection>
+    findEstimatedValueGroupedByCollection(UserEntity user);
 }

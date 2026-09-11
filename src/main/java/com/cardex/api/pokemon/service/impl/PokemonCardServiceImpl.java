@@ -2,6 +2,7 @@ package com.cardex.api.pokemon.service.impl;
 
 import com.cardex.api.entity.*;
 import com.cardex.api.exception.PokemonTcgApiUnavailableException;
+import com.cardex.api.pokemon.PokemonCardPriceExtractor;
 import com.cardex.api.pokemon.client.PokemonTcgClient;
 import com.cardex.api.pokemon.dto.PokemonCardApiResponse;
 import com.cardex.api.pokemon.dto.PokemonSetApiResponse;
@@ -70,8 +71,18 @@ public class PokemonCardServiceImpl
             List<PokemonCardSearchResponse> baseCards =
                     apiResponse.data()
                             .stream()
-                            .map(
-                                    pokemonCardMapper::toSearchResponse
+                            .map(card ->
+                                    PokemonCardPriceExtractor.enrich(
+                                            pokemonCardMapper.toSearchResponse(
+                                                    card
+                                            ),
+                                            PokemonCardPriceExtractor.usdFrom(
+                                                    card
+                                            ),
+                                            PokemonCardPriceExtractor.eurFrom(
+                                                    card
+                                            )
+                                    )
                             )
                             .toList();
 
@@ -317,7 +328,9 @@ public class PokemonCardServiceImpl
                                     : null,
                             wishlistCard != null
                                     ? wishlistCard.getPriority()
-                                    : null
+                                    : null,
+                            card.marketPriceUsd(),
+                            card.marketPriceEur()
                     );
                 })
                 .toList();
