@@ -1,10 +1,13 @@
 package com.cardex.api.controller;
 
 import com.cardex.api.dto.request.ChangePasswordRequest;
+import com.cardex.api.dto.request.ForgotPasswordRequest;
 import com.cardex.api.dto.request.LoginRequest;
 import com.cardex.api.dto.request.RegisterRequest;
+import com.cardex.api.dto.request.ResetPasswordRequest;
 import com.cardex.api.dto.request.UpdateProfileRequest;
 import com.cardex.api.dto.response.AuthResponse;
+import com.cardex.api.dto.response.ForgotPasswordResponse;
 import com.cardex.api.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +36,21 @@ public class AuthController {
             @Valid @RequestBody LoginRequest request
     ) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ForgotPasswordResponse> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequest request
+    ) {
+        return ResponseEntity.ok(authService.forgotPassword(request));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<Void> resetPassword(
+            @Valid @RequestBody ResetPasswordRequest request
+    ) {
+        authService.resetPassword(request);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/me")

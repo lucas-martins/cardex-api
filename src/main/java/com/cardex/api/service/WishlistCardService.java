@@ -1,5 +1,6 @@
 package com.cardex.api.service;
 
+import com.cardex.api.dto.wishlist.UpdateWishlistDetailsRequest;
 import com.cardex.api.dto.wishlist.UpdateWishlistPriorityRequest;
 import com.cardex.api.dto.wishlist.WishlistCardRequest;
 import com.cardex.api.dto.wishlist.WishlistCardResponse;
@@ -17,5 +18,10 @@ public interface WishlistCardService {
     WishlistCardResponse updatePriority(
             Long id,
             UpdateWishlistPriorityRequest request
+    );
+
+    WishlistCardResponse updateDetails(
+            Long id,
+            UpdateWishlistDetailsRequest request
     );
 }

@@ -43,8 +43,11 @@ public class PokemonCardServiceImpl
     private final ExchangeRateService exchangeRateService;
 
     @Override
-    public PokemonCardSearchPageResponse searchByName(
+    public PokemonCardSearchPageResponse search(
             String name,
+            String setId,
+            String number,
+            String rarity,
             int page,
             int size
     ) {
@@ -53,8 +56,11 @@ public class PokemonCardServiceImpl
 
         try {
             PokemonCardApiResponse apiResponse =
-                    pokemonTcgClient.searchByName(
+                    pokemonTcgClient.searchCards(
                             name,
+                            setId,
+                            number,
+                            rarity,
                             page,
                             size
                     );
@@ -135,6 +141,9 @@ public class PokemonCardServiceImpl
         ) {
             return searchFromLocalCatalog(
                     name,
+                    setId,
+                    number,
+                    rarity,
                     page,
                     size,
                     authenticatedUser,
@@ -221,14 +230,20 @@ public class PokemonCardServiceImpl
 
     private PokemonCardSearchPageResponse searchFromLocalCatalog(
             String name,
+            String setId,
+            String number,
+            String rarity,
             int page,
             int size,
             UserEntity authenticatedUser,
             PokemonTcgApiUnavailableException exception
     ) {
         Page<PokemonCardCatalogEntity> localPage =
-                pokemonCardCatalogService.searchByName(
+                pokemonCardCatalogService.search(
                         name,
+                        setId,
+                        number,
+                        rarity,
                         page,
                         size
                 );

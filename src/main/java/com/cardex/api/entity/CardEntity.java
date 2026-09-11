@@ -13,12 +13,13 @@ import lombok.Setter;
         name = "cards",
         uniqueConstraints = {
                 @UniqueConstraint(
-                        name = "uk_cards_external_language_condition",
+                        name = "uk_cards_external_language_condition_finish",
                         columnNames = {
                                 "user_id",
                                 "external_id",
                                 "language",
-                                "card_condition"
+                                "card_condition",
+                                "card_finish"
                         }
                 )
         }
@@ -58,6 +59,17 @@ public class CardEntity extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "card_condition", length = 30)
     private CardCondition condition;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "card_finish", nullable = false, length = 30)
+    private com.cardex.api.enumeration.CardFinish finish =
+            com.cardex.api.enumeration.CardFinish.NORMAL;
+
+    @Column(name = "grading_company", length = 50)
+    private String gradingCompany;
+
+    @Column(length = 20)
+    private String grade;
 
     @Column(name = "image_url", length = 1000)
     private String imageUrl;

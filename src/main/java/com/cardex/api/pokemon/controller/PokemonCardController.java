@@ -24,8 +24,14 @@ public class PokemonCardController {
     private final PokemonCardService pokemonCardService;
 
     @GetMapping
-    public ResponseEntity<PokemonCardSearchPageResponse> searchByName(
-            @RequestParam String name,
+    public ResponseEntity<PokemonCardSearchPageResponse> search(
+            @RequestParam(required = false) String name,
+
+            @RequestParam(required = false) String setId,
+
+            @RequestParam(required = false) String number,
+
+            @RequestParam(required = false) String rarity,
 
             @RequestParam(defaultValue = "1")
             @Min(value = 1, message = "Page must be at least 1")
@@ -36,8 +42,25 @@ public class PokemonCardController {
             @Max(value = 100, message = "Size must not exceed 100")
             int size
     ) {
+        boolean hasFilter =
+                (name != null && !name.isBlank())
+                        || (setId != null && !setId.isBlank())
+                        || (number != null && !number.isBlank())
+                        || (rarity != null && !rarity.isBlank());
+
+        if (!hasFilter) {
+            return ResponseEntity.badRequest().build();
+        }
+
         return ResponseEntity.ok(
-                pokemonCardService.searchByName(name, page, size)
+                pokemonCardService.search(
+                        name,
+                        setId,
+                        number,
+                        rarity,
+                        page,
+                        size
+                )
         );
     }
 

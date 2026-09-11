@@ -38,4 +38,16 @@ public class UserEntity extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private UserRole role = UserRole.USER;
+
+    @Column(name = "password_reset_token", length = 100)
+    private String passwordResetToken;
+
+    @Column(name = "password_reset_expires_at")
+    private java.time.LocalDateTime passwordResetExpiresAt;
+
+    @Column(name = "share_token", length = 100, unique = true)
+    private String shareToken;
+
+    @Column(name = "share_enabled", nullable = false)
+    private boolean shareEnabled = false;
 }

@@ -63,4 +63,13 @@ public class WishlistCardEntity extends BaseEntity {
     )
     private WishlistPriority priority =
             WishlistPriority.MEDIUM;
+
+    @Column(length = 1000)
+    private String notes;
+
+    @Column(name = "store_url", length = 1000)
+    private String storeUrl;
+
+    @Column(name = "target_price_usd", precision = 12, scale = 2)
+    private java.math.BigDecimal targetPriceUsd;
 }

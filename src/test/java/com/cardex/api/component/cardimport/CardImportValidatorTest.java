@@ -4,6 +4,7 @@ import com.cardex.api.dto.response.CardImportPreviewItemResponse;
 import com.cardex.api.entity.CardEntity;
 import com.cardex.api.entity.UserEntity;
 import com.cardex.api.enumeration.CardCondition;
+import com.cardex.api.enumeration.CardFinish;
 import com.cardex.api.enumeration.CardLanguage;
 import com.cardex.api.repository.CardRepository;
 import com.cardex.api.service.AuthenticatedUserService;
@@ -72,11 +73,12 @@ class CardImportValidatorTest {
         when(authenticatedUserService.getAuthenticatedUser())
                 .thenReturn(user);
 
-        when(cardRepository.findByUserAndExternalIdAndLanguageAndCondition(
+        when(cardRepository.findByUserAndExternalIdAndLanguageAndConditionAndFinish(
                 user,
                 "sm1-12",
                 CardLanguage.ENGLISH,
-                CardCondition.NEAR_MINT
+                CardCondition.NEAR_MINT,
+        CardFinish.NORMAL
         )).thenReturn(Optional.empty());
 
         CardImportPreviewItemResponse result =
@@ -90,11 +92,12 @@ class CardImportValidatorTest {
         verify(authenticatedUserService).getAuthenticatedUser();
 
         verify(cardRepository)
-                .findByUserAndExternalIdAndLanguageAndCondition(
+                .findByUserAndExternalIdAndLanguageAndConditionAndFinish(
                         user,
                         "sm1-12",
                         CardLanguage.ENGLISH,
-                        CardCondition.NEAR_MINT
+                        CardCondition.NEAR_MINT,
+                CardFinish.NORMAL
                 );
     }
 
@@ -128,11 +131,12 @@ class CardImportValidatorTest {
                 .getAuthenticatedUser();
 
         verify(cardRepository, never())
-                .findByUserAndExternalIdAndLanguageAndCondition(
+                .findByUserAndExternalIdAndLanguageAndConditionAndFinish(
                         user,
                         "",
                         CardLanguage.ENGLISH,
-                        CardCondition.NEAR_MINT
+                        CardCondition.NEAR_MINT,
+                CardFinish.NORMAL
                 );
     }
 
@@ -341,11 +345,12 @@ class CardImportValidatorTest {
         when(authenticatedUserService.getAuthenticatedUser())
                 .thenReturn(user);
 
-        when(cardRepository.findByUserAndExternalIdAndLanguageAndCondition(
+        when(cardRepository.findByUserAndExternalIdAndLanguageAndConditionAndFinish(
                 user,
                 "sm1-12",
                 CardLanguage.ENGLISH,
-                CardCondition.NEAR_MINT
+                CardCondition.NEAR_MINT,
+        CardFinish.NORMAL
         )).thenReturn(Optional.of(new CardEntity()));
 
         CardImportPreviewItemResponse result =
@@ -361,11 +366,12 @@ class CardImportValidatorTest {
         verify(authenticatedUserService).getAuthenticatedUser();
 
         verify(cardRepository)
-                .findByUserAndExternalIdAndLanguageAndCondition(
+                .findByUserAndExternalIdAndLanguageAndConditionAndFinish(
                         user,
                         "sm1-12",
                         CardLanguage.ENGLISH,
-                        CardCondition.NEAR_MINT
+                        CardCondition.NEAR_MINT,
+                CardFinish.NORMAL
                 );
     }
 
@@ -408,11 +414,12 @@ class CardImportValidatorTest {
         when(authenticatedUserService.getAuthenticatedUser())
                 .thenReturn(user);
 
-        when(cardRepository.findByUserAndExternalIdAndLanguageAndCondition(
+        when(cardRepository.findByUserAndExternalIdAndLanguageAndConditionAndFinish(
                 user,
                 "sm1-13",
                 CardLanguage.ENGLISH,
-                CardCondition.NEAR_MINT
+                CardCondition.NEAR_MINT,
+        CardFinish.NORMAL
         )).thenReturn(Optional.empty());
 
         CardImportPreviewItemResponse result =
@@ -423,11 +430,12 @@ class CardImportValidatorTest {
         verify(authenticatedUserService).getAuthenticatedUser();
 
         verify(cardRepository)
-                .findByUserAndExternalIdAndLanguageAndCondition(
+                .findByUserAndExternalIdAndLanguageAndConditionAndFinish(
                         user,
                         "sm1-13",
                         CardLanguage.ENGLISH,
-                        CardCondition.NEAR_MINT
+                        CardCondition.NEAR_MINT,
+                CardFinish.NORMAL
                 );
     }
 

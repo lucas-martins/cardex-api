@@ -68,7 +68,10 @@ class WishlistCardServiceImplTest {
         WishlistCardRequest request =
                 new WishlistCardRequest(
                         "sm1-1",
-                        WishlistPriority.HIGH
+                        WishlistPriority.HIGH,
+                        null,
+                        null,
+                        null
                 );
 
         PokemonCardCatalogEntity catalogCard =
@@ -137,6 +140,9 @@ class WishlistCardServiceImplTest {
         WishlistCardRequest request =
                 new WishlistCardRequest(
                         "sm1-1",
+                        null,
+                        null,
+                        null,
                         null
                 );
 
@@ -184,7 +190,10 @@ class WishlistCardServiceImplTest {
         WishlistCardRequest request =
                 new WishlistCardRequest(
                         "sm1-1",
-                        WishlistPriority.MEDIUM
+                        WishlistPriority.MEDIUM,
+                        null,
+                        null,
+                        null
                 );
 
         when(authenticatedUserService.getAuthenticatedUser())
@@ -404,6 +413,9 @@ class WishlistCardServiceImplTest {
                 "Common",
                 "image-url",
                 priority,
+                null,
+                null,
+                null,
                 LocalDateTime.now(),
                 LocalDateTime.now(),
                 null,

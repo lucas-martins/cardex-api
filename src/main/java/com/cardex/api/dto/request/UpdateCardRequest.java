@@ -1,6 +1,7 @@
 package com.cardex.api.dto.request;
 
 import com.cardex.api.enumeration.CardCondition;
+import com.cardex.api.enumeration.CardFinish;
 import com.cardex.api.enumeration.CardLanguage;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -21,6 +22,15 @@ public class UpdateCardRequest {
 
     @NotNull(message = "Condition is required")
     private CardCondition condition;
+
+    @NotNull(message = "Finish is required")
+    private CardFinish finish;
+
+    @Size(max = 50, message = "Grading company must not exceed 50 characters")
+    private String gradingCompany;
+
+    @Size(max = 20, message = "Grade must not exceed 20 characters")
+    private String grade;
 
     @Size(max = 1000, message = "Notes must not exceed 1000 characters")
     private String notes;

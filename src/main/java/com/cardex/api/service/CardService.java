@@ -46,11 +46,20 @@ public interface CardService {
 
     List<CollectionProgressResponse> getCollectionProgress();
 
+    List<CollectionProgressResponse> getCollectionProgressForUser(
+            com.cardex.api.entity.UserEntity user
+    );
+
     RefreshCardMetadataResponse refreshMetadata();
 
     CollectionDetailsResponse getCollectionDetails(String collectionId);
 
     CollectionChecklistResponse getCollectionChecklist(
+            String collectionId
+    );
+
+    CollectionChecklistResponse getCollectionChecklistForUser(
+            com.cardex.api.entity.UserEntity user,
             String collectionId
     );
 }

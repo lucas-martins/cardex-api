@@ -84,11 +84,14 @@ public class CardServiceImpl implements CardService {
                 authenticatedUserService.getAuthenticatedUser();
 
         return cardRepository
-                .findByUserAndExternalIdAndLanguageAndCondition(
+                .findByUserAndExternalIdAndLanguageAndConditionAndFinish(
                         authenticatedUser,
                         request.getExternalId(),
                         request.getLanguage(),
-                        request.getCondition()
+                        request.getCondition(),
+                        request.getFinish() != null
+                                ? request.getFinish()
+                                : com.cardex.api.enumeration.CardFinish.NORMAL
                 )
                 .map(existingCard ->
                         increaseQuantity(existingCard, request))
@@ -140,6 +143,12 @@ public class CardServiceImpl implements CardService {
 
         CardEntity cardEntity =
                 cardMapper.toEntity(request);
+
+        if (cardEntity.getFinish() == null) {
+            cardEntity.setFinish(
+                    com.cardex.api.enumeration.CardFinish.NORMAL
+            );
+        }
 
         cardEntity.setUser(authenticatedUser);
 
@@ -773,13 +782,19 @@ public class CardServiceImpl implements CardService {
     @Transactional(readOnly = true)
     public List<CollectionProgressResponse>
     getCollectionProgress() {
-        UserEntity authenticatedUser =
-                authenticatedUserService.getAuthenticatedUser();
+        return getCollectionProgressForUser(
+                authenticatedUserService.getAuthenticatedUser()
+        );
+    }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<CollectionProgressResponse>
+    getCollectionProgressForUser(UserEntity user) {
         Map<String, CollectionValueByCollectionProjection> valuesByCollection =
                 cardRepository
                         .findEstimatedValueGroupedByCollection(
-                                authenticatedUser,
+                                user,
                                 exchangeRateService.getUsdToBrlRate(),
                                 exchangeRateService.getEurToBrlRate()
                         )
@@ -792,7 +807,7 @@ public class CardServiceImpl implements CardService {
 
         return cardRepository
                 .findCollectionProgress(
-                        authenticatedUser
+                        user
                 )
                 .stream()
                 .map(item -> {
@@ -971,20 +986,29 @@ public class CardServiceImpl implements CardService {
     public CollectionChecklistResponse getCollectionChecklist(
             String collectionId
     ) {
-        UserEntity authenticatedUser =
-                authenticatedUserService.getAuthenticatedUser();
+        return getCollectionChecklistForUser(
+                authenticatedUserService.getAuthenticatedUser(),
+                collectionId
+        );
+    }
 
+    @Override
+    @Transactional
+    public CollectionChecklistResponse getCollectionChecklistForUser(
+            UserEntity user,
+            String collectionId
+    ) {
         List<CardEntity> ownedCards =
                 cardRepository
                         .findByUserAndCollectionId(
-                                authenticatedUser,
+                                user,
                                 collectionId
                         );
 
         List<WishlistCardEntity> wishlistCards =
                 wishlistCardRepository
                         .findAllByUserAndCollectionId(
-                                authenticatedUser,
+                                user,
                                 collectionId
                         );
 
@@ -1394,6 +1418,29 @@ public class CardServiceImpl implements CardService {
                             + request.getCondition()
                             + "."
             );
+        }
+
+        if (!Objects.equals(
+                card.getFinish(),
+                request.getFinish()
+        )) {
+            changes.add(
+                    "Finish changed from "
+                            + card.getFinish()
+                            + " to "
+                            + request.getFinish()
+                            + "."
+            );
+        }
+
+        if (!Objects.equals(
+                card.getGradingCompany(),
+                request.getGradingCompany()
+        ) || !Objects.equals(
+                card.getGrade(),
+                request.getGrade()
+        )) {
+            changes.add("Grading updated.");
         }
 
         if (!Objects.equals(

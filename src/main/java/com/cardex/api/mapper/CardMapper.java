@@ -19,6 +19,10 @@ public interface CardMapper {
     @Mapping(target = "imageUrl", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "user", ignore = true)
+    @Mapping(target = "favorite", ignore = true)
+    @Mapping(target = "collectionId", ignore = true)
+    @Mapping(target = "collectionTotal", ignore = true)
     CardEntity toEntity(CreateCardRequest request);
 
     @Mapping(target = "marketPriceUsd", ignore = true)
@@ -39,6 +43,9 @@ public interface CardMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "favorite", ignore = true)
+    @Mapping(target = "user", ignore = true)
+    @Mapping(target = "collectionId", ignore = true)
+    @Mapping(target = "collectionTotal", ignore = true)
     void updateEntity(
             UpdateCardRequest request,
             @MappingTarget CardEntity cardEntity

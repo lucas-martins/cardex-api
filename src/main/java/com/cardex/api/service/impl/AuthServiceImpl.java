@@ -1,14 +1,18 @@
 package com.cardex.api.service.impl;
 
 import com.cardex.api.dto.request.ChangePasswordRequest;
+import com.cardex.api.dto.request.ForgotPasswordRequest;
 import com.cardex.api.dto.request.LoginRequest;
 import com.cardex.api.dto.request.RegisterRequest;
+import com.cardex.api.dto.request.ResetPasswordRequest;
 import com.cardex.api.dto.request.UpdateProfileRequest;
 import com.cardex.api.dto.response.AuthResponse;
+import com.cardex.api.dto.response.ForgotPasswordResponse;
 import com.cardex.api.entity.UserEntity;
 import com.cardex.api.exception.EmailAlreadyRegisteredException;
 import com.cardex.api.exception.InvalidCredentialsException;
 import com.cardex.api.exception.InvalidCurrentPasswordException;
+import com.cardex.api.exception.InvalidResetTokenException;
 import com.cardex.api.repository.UserRepository;
 import com.cardex.api.service.AuthService;
 import com.cardex.api.service.AuthenticatedUserService;
@@ -17,6 +21,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -60,6 +67,45 @@ public class AuthServiceImpl implements AuthService {
         }
 
         return toResponse(user);
+    }
+
+    @Override
+    @Transactional
+    public ForgotPasswordResponse forgotPassword(ForgotPasswordRequest request) {
+        String normalizedEmail = normalizeEmail(request.email());
+
+        UserEntity user = userRepository
+                .findByEmailIgnoreCase(normalizedEmail)
+                .orElse(null);
+
+        if (user == null) {
+            return new ForgotPasswordResponse(null);
+        }
+
+        String resetToken = UUID.randomUUID().toString().replace("-", "");
+        user.setPasswordResetToken(resetToken);
+        user.setPasswordResetExpiresAt(LocalDateTime.now().plusHours(1));
+
+        return new ForgotPasswordResponse(resetToken);
+    }
+
+    @Override
+    @Transactional
+    public void resetPassword(ResetPasswordRequest request) {
+        UserEntity user = userRepository
+                .findByPasswordResetToken(request.token())
+                .orElseThrow(InvalidResetTokenException::new);
+
+        if (user.getPasswordResetExpiresAt() == null
+                || user.getPasswordResetExpiresAt().isBefore(LocalDateTime.now())) {
+            user.setPasswordResetToken(null);
+            user.setPasswordResetExpiresAt(null);
+            throw new InvalidResetTokenException();
+        }
+
+        user.setPassword(passwordEncoder.encode(request.newPassword()));
+        user.setPasswordResetToken(null);
+        user.setPasswordResetExpiresAt(null);
     }
 
     private String normalizeEmail(String email) {

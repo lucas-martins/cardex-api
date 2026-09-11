@@ -26,38 +26,32 @@ public class PokemonTcgClient {
 
     private final RestClient pokemonTcgRestClient;
 
-    public PokemonCardApiResponse searchByName(
+    public PokemonCardApiResponse searchCards(
             String name,
+            String setId,
+            String number,
+            String rarity,
             int page,
             int pageSize
     ) {
-        String normalizedName = name.trim();
+        String query = buildSearchQuery(name, setId, number, rarity);
 
         return executeWithRetry(
                 () -> pokemonTcgRestClient
                         .get()
-                        .uri(uriBuilder -> uriBuilder
-                                .path("/cards")
-                                .queryParam(
-                                        "q",
-                                        "name:*"
-                                                + normalizedName
-                                                + "*"
-                                )
-                                .queryParam(
-                                        "page",
-                                        page
-                                )
-                                .queryParam(
-                                        "pageSize",
-                                        pageSize
-                                )
-                                .queryParam(
-                                        "select",
-                                        SELECTED_FIELDS
-                                )
-                                .build()
-                        )
+                        .uri(uriBuilder -> {
+                            var builder = uriBuilder
+                                    .path("/cards")
+                                    .queryParam("page", page)
+                                    .queryParam("pageSize", pageSize)
+                                    .queryParam("select", SELECTED_FIELDS);
+
+                            if (query != null && !query.isBlank()) {
+                                builder = builder.queryParam("q", query);
+                            }
+
+                            return builder.build();
+                        })
                         .retrieve()
                         .onStatus(
                                 HttpStatusCode::is5xxServerError,
@@ -69,6 +63,51 @@ public class PokemonTcgClient {
                                 PokemonCardApiResponse.class
                         )
         );
+    }
+
+    public PokemonCardApiResponse searchByName(
+            String name,
+            int page,
+            int pageSize
+    ) {
+        return searchCards(name, null, null, null, page, pageSize);
+    }
+
+    private String buildSearchQuery(
+            String name,
+            String setId,
+            String number,
+            String rarity
+    ) {
+        java.util.List<String> clauses = new java.util.ArrayList<>();
+
+        if (name != null && !name.isBlank()) {
+            clauses.add("name:*" + name.trim() + "*");
+        }
+
+        if (setId != null && !setId.isBlank()) {
+            clauses.add("set.id:" + setId.trim());
+        }
+
+        if (number != null && !number.isBlank()) {
+            clauses.add("number:" + number.trim());
+        }
+
+        if (rarity != null && !rarity.isBlank()) {
+            String normalizedRarity = rarity.trim();
+
+            if (normalizedRarity.contains(" ")) {
+                clauses.add("rarity:\"" + normalizedRarity + "\"");
+            } else {
+                clauses.add("rarity:" + normalizedRarity);
+            }
+        }
+
+        if (clauses.isEmpty()) {
+            return null;
+        }
+
+        return String.join(" ", clauses);
     }
 
     public PokemonCardApiSingleResponse findById(

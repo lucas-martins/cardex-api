@@ -10,11 +10,13 @@ import com.cardex.api.pokemon.dto.PokemonCardApiResponse;
 import com.cardex.api.pokemon.dto.PokemonCardApiSingleResponse;
 import com.cardex.api.repository.PokemonCardCatalogRepository;
 import com.cardex.api.service.PokemonCardCatalogService;
+import com.cardex.api.specification.PokemonCardCatalogSpecification;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -436,8 +438,11 @@ public class PokemonCardCatalogServiceImpl
 
     @Override
     @Transactional(readOnly = true)
-    public Page<PokemonCardCatalogEntity> searchByName(
+    public Page<PokemonCardCatalogEntity> search(
             String name,
+            String setId,
+            String number,
+            String rarity,
             int page,
             int size
     ) {
@@ -451,11 +456,33 @@ public class PokemonCardCatalogServiceImpl
                         )
                 );
 
-        return pokemonCardCatalogRepository
-                .findByNameContainingIgnoreCase(
-                        name.trim(),
-                        pageable
-                );
+        Specification<PokemonCardCatalogEntity> specification =
+                Specification
+                        .where(
+                                PokemonCardCatalogSpecification.nameContains(
+                                        name
+                                )
+                        )
+                        .and(
+                                PokemonCardCatalogSpecification.collectionIdEquals(
+                                        setId
+                                )
+                        )
+                        .and(
+                                PokemonCardCatalogSpecification.numberContains(
+                                        number
+                                )
+                        )
+                        .and(
+                                PokemonCardCatalogSpecification.rarityContains(
+                                        rarity
+                                )
+                        );
+
+        return pokemonCardCatalogRepository.findAll(
+                specification,
+                pageable
+        );
     }
 
     @Override

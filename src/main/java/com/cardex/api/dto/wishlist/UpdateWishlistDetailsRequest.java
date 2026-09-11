@@ -2,16 +2,11 @@ package com.cardex.api.dto.wishlist;
 
 import com.cardex.api.enumeration.WishlistPriority;
 import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 
-public record WishlistCardRequest(
-
-        @NotBlank(message = "External ID is required")
-        String externalId,
-
+public record UpdateWishlistDetailsRequest(
         WishlistPriority priority,
 
         @Size(max = 1000, message = "Notes must not exceed 1000 characters")
@@ -22,6 +17,5 @@ public record WishlistCardRequest(
 
         @DecimalMin(value = "0.0", inclusive = true, message = "Target price must be positive")
         BigDecimal targetPriceUsd
-
 ) {
 }

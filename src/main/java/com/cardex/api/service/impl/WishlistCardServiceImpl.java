@@ -1,5 +1,6 @@
 package com.cardex.api.service.impl;
 
+import com.cardex.api.dto.wishlist.UpdateWishlistDetailsRequest;
 import com.cardex.api.dto.wishlist.UpdateWishlistPriorityRequest;
 import com.cardex.api.dto.wishlist.WishlistCardRequest;
 import com.cardex.api.dto.wishlist.WishlistCardResponse;
@@ -97,6 +98,9 @@ public class WishlistCardServiceImpl
                                 pokemonCard.getImageUrl()
                         )
                         .priority(priority)
+                        .notes(request.notes())
+                        .storeUrl(request.storeUrl())
+                        .targetPriceUsd(request.targetPriceUsd())
                         .build();
 
         WishlistCardEntity savedEntity =
@@ -170,6 +174,41 @@ public class WishlistCardServiceImpl
         entity.setPriority(
                 request.priority()
         );
+
+        WishlistCardEntity updatedEntity =
+                repository.save(entity);
+
+        return enrich(updatedEntity);
+    }
+
+    @Override
+    public WishlistCardResponse updateDetails(
+            Long id,
+            UpdateWishlistDetailsRequest request
+    ) {
+        UserEntity authenticatedUser =
+                authenticatedUserService.getAuthenticatedUser();
+
+        WishlistCardEntity entity =
+                repository
+                        .findByIdAndUser(
+                                id,
+                                authenticatedUser
+                        )
+                        .orElseThrow(
+                                () ->
+                                        new WishlistCardNotFoundException(
+                                                id
+                                        )
+                        );
+
+        if (request.priority() != null) {
+            entity.setPriority(request.priority());
+        }
+
+        entity.setNotes(request.notes());
+        entity.setStoreUrl(request.storeUrl());
+        entity.setTargetPriceUsd(request.targetPriceUsd());
 
         WishlistCardEntity updatedEntity =
                 repository.save(entity);

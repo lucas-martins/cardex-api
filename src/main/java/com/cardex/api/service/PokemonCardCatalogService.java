@@ -20,8 +20,11 @@ public interface PokemonCardCatalogService {
             List<PokemonCardApiData> cards
     );
 
-    Page<PokemonCardCatalogEntity> searchByName(
+    Page<PokemonCardCatalogEntity> search(
             String name,
+            String setId,
+            String number,
+            String rarity,
             int page,
             int size
     );

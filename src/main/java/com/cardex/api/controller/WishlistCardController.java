@@ -1,5 +1,6 @@
 package com.cardex.api.controller;
 
+import com.cardex.api.dto.wishlist.UpdateWishlistDetailsRequest;
 import com.cardex.api.dto.wishlist.UpdateWishlistPriorityRequest;
 import com.cardex.api.dto.wishlist.WishlistCardRequest;
 import com.cardex.api.dto.wishlist.WishlistCardResponse;
@@ -55,6 +56,16 @@ public class WishlistCardController {
                         id,
                         request
                 )
+        );
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<WishlistCardResponse> updateDetails(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateWishlistDetailsRequest request
+    ) {
+        return ResponseEntity.ok(
+                wishlistCardService.updateDetails(id, request)
         );
     }
 

@@ -133,11 +133,13 @@ class CardServiceImplTest {
         request.setQuantity(3);
         request.setLanguage(CardLanguage.PORTUGUESE);
         request.setCondition(CardCondition.MINT);
+        request.setFinish(CardFinish.NORMAL);
         request.setNotes("Updated card");
 
         cardEntity.setQuantity(1);
         cardEntity.setLanguage(CardLanguage.ENGLISH);
         cardEntity.setCondition(CardCondition.NEAR_MINT);
+        cardEntity.setFinish(CardFinish.NORMAL);
         cardEntity.setNotes(null);
 
         CardResponse updatedResponse = CardResponse.builder()
@@ -199,6 +201,7 @@ class CardServiceImplTest {
         request.setQuantity(3);
         request.setLanguage(CardLanguage.ENGLISH);
         request.setCondition(CardCondition.NEAR_MINT);
+        request.setFinish(CardFinish.NORMAL);
         request.setNotes("Updated card");
 
         when(authenticatedUserService.getAuthenticatedUser())
@@ -247,11 +250,12 @@ class CardServiceImplTest {
         when(authenticatedUserService.getAuthenticatedUser())
                 .thenReturn(user);
 
-        when(cardRepository.findByUserAndExternalIdAndLanguageAndCondition(
+        when(cardRepository.findByUserAndExternalIdAndLanguageAndConditionAndFinish(
                 user,
                 "sm1-12",
                 CardLanguage.ENGLISH,
-                CardCondition.NEAR_MINT
+                CardCondition.NEAR_MINT,
+        CardFinish.NORMAL
         )).thenReturn(Optional.of(cardEntity));
 
         when(cardRepository.save(cardEntity))
@@ -279,11 +283,12 @@ class CardServiceImplTest {
         assertEquals(5, result.getQuantity());
 
         verify(cardRepository)
-                .findByUserAndExternalIdAndLanguageAndCondition(
+                .findByUserAndExternalIdAndLanguageAndConditionAndFinish(
                         user,
                         "sm1-12",
                         CardLanguage.ENGLISH,
-                        CardCondition.NEAR_MINT
+                        CardCondition.NEAR_MINT,
+                CardFinish.NORMAL
                 );
         verify(cardRepository).save(cardEntity);
         verify(cardMapper).toResponse(cardEntity);
@@ -355,11 +360,12 @@ class CardServiceImplTest {
                 .thenReturn(user);
 
         when(cardRepository
-                .findByUserAndExternalIdAndLanguageAndCondition(
+                .findByUserAndExternalIdAndLanguageAndConditionAndFinish(
                         user,
                         "sm1-12",
                         CardLanguage.ENGLISH,
-                        CardCondition.NEAR_MINT
+                        CardCondition.NEAR_MINT,
+                CardFinish.NORMAL
                 )
         ).thenReturn(Optional.empty());
 
@@ -443,16 +449,18 @@ class CardServiceImplTest {
         request.setCondition(
                 CardCondition.NEAR_MINT
         );
+        request.setFinish(CardFinish.NORMAL);
 
         when(authenticatedUserService.getAuthenticatedUser())
                 .thenReturn(user);
 
         when(cardRepository
-                .findByUserAndExternalIdAndLanguageAndCondition(
+                .findByUserAndExternalIdAndLanguageAndConditionAndFinish(
                         user,
                         "invalid-id",
                         CardLanguage.ENGLISH,
-                        CardCondition.NEAR_MINT
+                        CardCondition.NEAR_MINT,
+                CardFinish.NORMAL
                 )
         ).thenReturn(Optional.empty());
 
@@ -476,11 +484,12 @@ class CardServiceImplTest {
         );
 
         verify(cardRepository)
-                .findByUserAndExternalIdAndLanguageAndCondition(
+                .findByUserAndExternalIdAndLanguageAndConditionAndFinish(
                         user,
                         "invalid-id",
                         CardLanguage.ENGLISH,
-                        CardCondition.NEAR_MINT
+                        CardCondition.NEAR_MINT,
+                CardFinish.NORMAL
                 );
 
         verify(pokemonCardCatalogService)
@@ -861,11 +870,12 @@ class CardServiceImplTest {
                 .thenReturn(user);
 
         when(cardRepository
-                .findByUserAndExternalIdAndLanguageAndCondition(
+                .findByUserAndExternalIdAndLanguageAndConditionAndFinish(
                         user,
                         "sm1-1",
                         CardLanguage.ENGLISH,
-                        CardCondition.NEAR_MINT
+                        CardCondition.NEAR_MINT,
+                CardFinish.NORMAL
                 ))
                 .thenReturn(Optional.empty());
 

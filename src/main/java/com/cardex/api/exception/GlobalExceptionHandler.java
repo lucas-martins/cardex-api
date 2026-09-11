@@ -358,4 +358,44 @@ public class GlobalExceptionHandler {
                 .status(status)
                 .body(response);
     }
+
+    @ExceptionHandler(InvalidResetTokenException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidResetToken(
+            InvalidResetTokenException exception,
+            HttpServletRequest request
+    ) {
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+
+        ApiErrorResponse response = new ApiErrorResponse(
+                status.value(),
+                status.getReasonPhrase(),
+                exception.getMessage(),
+                request.getRequestURI(),
+                LocalDateTime.now()
+        );
+
+        return ResponseEntity
+                .status(status)
+                .body(response);
+    }
+
+    @ExceptionHandler(ShareNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleShareNotFound(
+            ShareNotFoundException exception,
+            HttpServletRequest request
+    ) {
+        HttpStatus status = HttpStatus.NOT_FOUND;
+
+        ApiErrorResponse response = new ApiErrorResponse(
+                status.value(),
+                status.getReasonPhrase(),
+                exception.getMessage(),
+                request.getRequestURI(),
+                LocalDateTime.now()
+        );
+
+        return ResponseEntity
+                .status(status)
+                .body(response);
+    }
 }

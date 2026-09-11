@@ -8,8 +8,11 @@ import java.util.List;
 
 public interface PokemonCardService {
 
-    PokemonCardSearchPageResponse searchByName(
+    PokemonCardSearchPageResponse search(
             String name,
+            String setId,
+            String number,
+            String rarity,
             int page,
             int size
     );
