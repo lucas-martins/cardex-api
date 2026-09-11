@@ -10,5 +10,6 @@ public interface WishlistCardMapper {
 
     @Mapping(target = "marketPriceUsd", ignore = true)
     @Mapping(target = "marketPriceEur", ignore = true)
+    @Mapping(target = "marketPriceBrl", ignore = true)
     WishlistCardResponse toResponse(WishlistCardEntity entity);
 }

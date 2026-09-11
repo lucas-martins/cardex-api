@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -215,6 +216,13 @@ public interface CardRepository extends
         end), 0) as estimatedValueEur,
         coalesce(sum(case
             when catalog.marketPriceUsd is not null
+            then card.quantity * catalog.marketPriceUsd * :usdToBrl
+            when catalog.marketPriceEur is not null
+            then card.quantity * catalog.marketPriceEur * :eurToBrl
+            else 0
+        end), 0) as estimatedValueBrl,
+        coalesce(sum(case
+            when catalog.marketPriceUsd is not null
               or catalog.marketPriceEur is not null
             then card.quantity
             else 0
@@ -230,7 +238,11 @@ public interface CardRepository extends
         on catalog.externalId = card.externalId
     where card.user = :user
     """)
-    CollectionValueProjection sumCollectionValue(UserEntity user);
+    CollectionValueProjection sumCollectionValue(
+            UserEntity user,
+            BigDecimal usdToBrl,
+            BigDecimal eurToBrl
+    );
 
     @Query("""
     select
@@ -245,7 +257,14 @@ public interface CardRepository extends
             when catalog.marketPriceEur is not null
             then card.quantity * catalog.marketPriceEur
             else 0
-        end), 0) as estimatedValueEur
+        end), 0) as estimatedValueEur,
+        coalesce(sum(case
+            when catalog.marketPriceUsd is not null
+            then card.quantity * catalog.marketPriceUsd * :usdToBrl
+            when catalog.marketPriceEur is not null
+            then card.quantity * catalog.marketPriceEur * :eurToBrl
+            else 0
+        end), 0) as estimatedValueBrl
     from CardEntity card
     left join PokemonCardCatalogEntity catalog
         on catalog.externalId = card.externalId
@@ -256,11 +275,17 @@ public interface CardRepository extends
         card.collectionName
     order by coalesce(sum(case
             when catalog.marketPriceUsd is not null
-            then card.quantity * catalog.marketPriceUsd
+            then card.quantity * catalog.marketPriceUsd * :usdToBrl
+            when catalog.marketPriceEur is not null
+            then card.quantity * catalog.marketPriceEur * :eurToBrl
             else 0
         end), 0) desc,
         card.collectionName asc
     """)
     List<CollectionValueByCollectionProjection>
-    findEstimatedValueGroupedByCollection(UserEntity user);
+    findEstimatedValueGroupedByCollection(
+            UserEntity user,
+            BigDecimal usdToBrl,
+            BigDecimal eurToBrl
+    );
 }

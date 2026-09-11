@@ -15,8 +15,10 @@ public record CollectionChecklistResponse(
         long additionalCards,
         BigDecimal estimatedOwnedValueUsd,
         BigDecimal estimatedOwnedValueEur,
+        BigDecimal estimatedOwnedValueBrl,
         BigDecimal estimatedMissingValueUsd,
         BigDecimal estimatedMissingValueEur,
+        BigDecimal estimatedMissingValueBrl,
         List<CollectionChecklistCardResponse> cards
 ) {
 }

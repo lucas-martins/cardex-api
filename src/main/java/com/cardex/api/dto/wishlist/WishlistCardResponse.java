@@ -19,6 +19,7 @@ public record WishlistCardResponse(
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
         BigDecimal marketPriceUsd,
-        BigDecimal marketPriceEur
+        BigDecimal marketPriceEur,
+        BigDecimal marketPriceBrl
 ) {
 }

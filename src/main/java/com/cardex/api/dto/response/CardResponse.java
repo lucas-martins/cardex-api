@@ -30,6 +30,8 @@ public class CardResponse {
     private Integer collectionTotal;
     private BigDecimal marketPriceUsd;
     private BigDecimal marketPriceEur;
+    private BigDecimal marketPriceBrl;
     private BigDecimal estimatedValueUsd;
     private BigDecimal estimatedValueEur;
+    private BigDecimal estimatedValueBrl;
 }

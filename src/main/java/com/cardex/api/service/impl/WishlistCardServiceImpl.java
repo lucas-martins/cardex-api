@@ -12,6 +12,7 @@ import com.cardex.api.exception.WishlistCardNotFoundException;
 import com.cardex.api.mapper.WishlistCardMapper;
 import com.cardex.api.repository.WishlistCardRepository;
 import com.cardex.api.service.AuthenticatedUserService;
+import com.cardex.api.service.ExchangeRateService;
 import com.cardex.api.service.PokemonCardCatalogService;
 import com.cardex.api.service.WishlistCardService;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +39,7 @@ public class WishlistCardServiceImpl
             pokemonCardCatalogService;
     private final AuthenticatedUserService
             authenticatedUserService;
+    private final ExchangeRateService exchangeRateService;
 
     @Override
     public WishlistCardResponse create(
@@ -102,7 +104,8 @@ public class WishlistCardServiceImpl
 
         return PokemonCardPriceExtractor.enrich(
                 mapper.toResponse(savedEntity),
-                pokemonCard
+                pokemonCard,
+                exchangeRateService::toBrl
         );
     }
 
@@ -205,7 +208,8 @@ public class WishlistCardServiceImpl
                                 mapper.toResponse(card),
                                 catalogByExternalId.get(
                                         card.getExternalId()
-                                )
+                                ),
+                                exchangeRateService::toBrl
                         )
                 )
                 .toList();

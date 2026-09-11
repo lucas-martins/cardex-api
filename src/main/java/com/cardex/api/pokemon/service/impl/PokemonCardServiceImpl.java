@@ -15,12 +15,14 @@ import com.cardex.api.repository.CardRepository;
 import com.cardex.api.repository.WishlistCardRepository;
 import com.cardex.api.repository.projection.CollectionOwnedCardsProjection;
 import com.cardex.api.service.AuthenticatedUserService;
+import com.cardex.api.service.ExchangeRateService;
 import com.cardex.api.service.PokemonCardCatalogService;
 import com.cardex.api.service.PokemonSetCatalogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -38,6 +40,7 @@ public class PokemonCardServiceImpl
     private final WishlistCardRepository wishlistCardRepository;
     private final AuthenticatedUserService authenticatedUserService;
     private final PokemonSetCatalogService pokemonSetCatalogService;
+    private final ExchangeRateService exchangeRateService;
 
     @Override
     public PokemonCardSearchPageResponse searchByName(
@@ -71,19 +74,29 @@ public class PokemonCardServiceImpl
             List<PokemonCardSearchResponse> baseCards =
                     apiResponse.data()
                             .stream()
-                            .map(card ->
-                                    PokemonCardPriceExtractor.enrich(
-                                            pokemonCardMapper.toSearchResponse(
-                                                    card
-                                            ),
-                                            PokemonCardPriceExtractor.usdFrom(
-                                                    card
-                                            ),
-                                            PokemonCardPriceExtractor.eurFrom(
-                                                    card
-                                            )
-                                    )
-                            )
+                            .map(card -> {
+                                BigDecimal marketPriceUsd =
+                                        PokemonCardPriceExtractor.usdFrom(
+                                                card
+                                        );
+
+                                BigDecimal marketPriceEur =
+                                        PokemonCardPriceExtractor.eurFrom(
+                                                card
+                                        );
+
+                                return PokemonCardPriceExtractor.enrich(
+                                        pokemonCardMapper.toSearchResponse(
+                                                card
+                                        ),
+                                        marketPriceUsd,
+                                        marketPriceEur,
+                                        exchangeRateService.toBrl(
+                                                marketPriceUsd,
+                                                marketPriceEur
+                                        )
+                                );
+                            })
                             .toList();
 
             List<PokemonCardSearchResponse> cards =
@@ -228,8 +241,18 @@ public class PokemonCardServiceImpl
                 localPage
                         .getContent()
                         .stream()
-                        .map(
-                                pokemonCardMapper::toSearchResponse
+                        .map(catalogCard ->
+                                PokemonCardPriceExtractor.enrich(
+                                        pokemonCardMapper.toSearchResponse(
+                                                catalogCard
+                                        ),
+                                        catalogCard.getMarketPriceUsd(),
+                                        catalogCard.getMarketPriceEur(),
+                                        exchangeRateService.toBrl(
+                                                catalogCard.getMarketPriceUsd(),
+                                                catalogCard.getMarketPriceEur()
+                                        )
+                                )
                         )
                         .toList();
 
@@ -330,7 +353,8 @@ public class PokemonCardServiceImpl
                                     ? wishlistCard.getPriority()
                                     : null,
                             card.marketPriceUsd(),
-                            card.marketPriceEur()
+                            card.marketPriceEur(),
+                            card.marketPriceBrl()
                     );
                 })
                 .toList();

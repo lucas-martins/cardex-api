@@ -13,6 +13,7 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 
 public final class PokemonCardPriceExtractor {
 
@@ -113,37 +114,47 @@ public final class PokemonCardPriceExtractor {
     public static CardResponse enrich(
             CardResponse response,
             PokemonCardCatalogEntity catalog,
-            Integer quantity
+            Integer quantity,
+            BiFunction<BigDecimal, BigDecimal, BigDecimal> toBrl
     ) {
         if (response == null || catalog == null) {
             return response;
         }
 
+        BigDecimal marketPriceUsd = catalog.getMarketPriceUsd();
+        BigDecimal marketPriceEur = catalog.getMarketPriceEur();
+        BigDecimal marketPriceBrl =
+                toBrl != null
+                        ? toBrl.apply(marketPriceUsd, marketPriceEur)
+                        : null;
+
         return response.toBuilder()
-                .marketPriceUsd(catalog.getMarketPriceUsd())
-                .marketPriceEur(catalog.getMarketPriceEur())
+                .marketPriceUsd(marketPriceUsd)
+                .marketPriceEur(marketPriceEur)
+                .marketPriceBrl(marketPriceBrl)
                 .estimatedValueUsd(
-                        multiply(
-                                catalog.getMarketPriceUsd(),
-                                quantity
-                        )
+                        multiply(marketPriceUsd, quantity)
                 )
                 .estimatedValueEur(
-                        multiply(
-                                catalog.getMarketPriceEur(),
-                                quantity
-                        )
+                        multiply(marketPriceEur, quantity)
+                )
+                .estimatedValueBrl(
+                        multiply(marketPriceBrl, quantity)
                 )
                 .build();
     }
 
     public static WishlistCardResponse enrich(
             WishlistCardResponse response,
-            PokemonCardCatalogEntity catalog
+            PokemonCardCatalogEntity catalog,
+            BiFunction<BigDecimal, BigDecimal, BigDecimal> toBrl
     ) {
         if (response == null || catalog == null) {
             return response;
         }
+
+        BigDecimal marketPriceUsd = catalog.getMarketPriceUsd();
+        BigDecimal marketPriceEur = catalog.getMarketPriceEur();
 
         return new WishlistCardResponse(
                 response.id(),
@@ -158,15 +169,19 @@ public final class PokemonCardPriceExtractor {
                 response.priority(),
                 response.createdAt(),
                 response.updatedAt(),
-                catalog.getMarketPriceUsd(),
-                catalog.getMarketPriceEur()
+                marketPriceUsd,
+                marketPriceEur,
+                toBrl != null
+                        ? toBrl.apply(marketPriceUsd, marketPriceEur)
+                        : null
         );
     }
 
     public static PokemonCardSearchResponse enrich(
             PokemonCardSearchResponse response,
             BigDecimal marketPriceUsd,
-            BigDecimal marketPriceEur
+            BigDecimal marketPriceEur,
+            BigDecimal marketPriceBrl
     ) {
         if (response == null) {
             return null;
@@ -185,7 +200,8 @@ public final class PokemonCardPriceExtractor {
                 response.wishlistId(),
                 response.wishlistPriority(),
                 marketPriceUsd,
-                marketPriceEur
+                marketPriceEur,
+                marketPriceBrl
         );
     }
 

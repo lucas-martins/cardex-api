@@ -11,4 +11,6 @@ public interface CollectionValueByCollectionProjection {
     BigDecimal getEstimatedValueUsd();
 
     BigDecimal getEstimatedValueEur();
+
+    BigDecimal getEstimatedValueBrl();
 }

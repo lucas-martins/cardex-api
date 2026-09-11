@@ -12,6 +12,7 @@ import com.cardex.api.exception.WishlistCardNotFoundException;
 import com.cardex.api.mapper.WishlistCardMapper;
 import com.cardex.api.repository.WishlistCardRepository;
 import com.cardex.api.service.AuthenticatedUserService;
+import com.cardex.api.service.ExchangeRateService;
 import com.cardex.api.service.PokemonCardCatalogService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,6 +48,9 @@ class WishlistCardServiceImplTest {
 
     @Mock
     private AuthenticatedUserService authenticatedUserService;
+
+    @Mock
+    private ExchangeRateService exchangeRateService;
 
     @InjectMocks
     private WishlistCardServiceImpl wishlistCardService;
@@ -402,6 +406,7 @@ class WishlistCardServiceImplTest {
                 priority,
                 LocalDateTime.now(),
                 LocalDateTime.now(),
+                null,
                 null,
                 null
         );

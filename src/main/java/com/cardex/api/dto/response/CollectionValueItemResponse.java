@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 public record CollectionValueItemResponse(
         String name,
         BigDecimal estimatedValueUsd,
-        BigDecimal estimatedValueEur
+        BigDecimal estimatedValueEur,
+        BigDecimal estimatedValueBrl
 ) {
 }

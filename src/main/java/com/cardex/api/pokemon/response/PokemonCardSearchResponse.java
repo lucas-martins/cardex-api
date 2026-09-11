@@ -17,6 +17,7 @@ public record PokemonCardSearchResponse(
         Long wishlistId,
         WishlistPriority wishlistPriority,
         BigDecimal marketPriceUsd,
-        BigDecimal marketPriceEur
+        BigDecimal marketPriceEur,
+        BigDecimal marketPriceBrl
 ) {
 }

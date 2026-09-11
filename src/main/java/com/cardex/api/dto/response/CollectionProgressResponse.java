@@ -9,6 +9,7 @@ public record CollectionProgressResponse(
         long totalCards,
         double completionPercentage,
         BigDecimal estimatedValueUsd,
-        BigDecimal estimatedValueEur
+        BigDecimal estimatedValueEur,
+        BigDecimal estimatedValueBrl
 ) {
 }

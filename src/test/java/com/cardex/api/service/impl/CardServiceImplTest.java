@@ -16,6 +16,7 @@ import com.cardex.api.pokemon.dto.*;
 import com.cardex.api.repository.CardRepository;
 import com.cardex.api.repository.WishlistCardRepository;
 import com.cardex.api.service.AuthenticatedUserService;
+import com.cardex.api.service.ExchangeRateService;
 import com.cardex.api.service.PokemonCardCatalogService;
 import com.cardex.api.service.PokemonSetCatalogService;
 import org.junit.jupiter.api.BeforeEach;
@@ -60,6 +61,9 @@ class CardServiceImplTest {
 
     @Mock
     private PokemonSetCatalogService pokemonSetCatalogService;
+
+    @Mock
+    private ExchangeRateService exchangeRateService;
 
     private CardEntity cardEntity;
     private CardResponse cardResponse;

@@ -9,6 +9,7 @@ import com.cardex.api.repository.CardRepository;
 import com.cardex.api.repository.WishlistCardRepository;
 import com.cardex.api.repository.projection.CollectionOwnedCardsProjection;
 import com.cardex.api.service.AuthenticatedUserService;
+import com.cardex.api.service.ExchangeRateService;
 import com.cardex.api.service.PokemonCardCatalogService;
 import com.cardex.api.service.PokemonSetCatalogService;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,6 +52,9 @@ class PokemonCardServiceImplTest {
     private PokemonSetCatalogService
             pokemonSetCatalogService;
 
+    @Mock
+    private ExchangeRateService exchangeRateService;
+
     private PokemonCardServiceImpl service;
 
     private UserEntity user;
@@ -65,7 +69,8 @@ class PokemonCardServiceImplTest {
                         cardRepository,
                         wishlistCardRepository,
                         authenticatedUserService,
-                        pokemonSetCatalogService
+                        pokemonSetCatalogService,
+                        exchangeRateService
                 );
 
         user = new UserEntity();

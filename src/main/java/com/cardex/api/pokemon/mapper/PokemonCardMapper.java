@@ -20,6 +20,7 @@ public interface PokemonCardMapper {
     @Mapping(target = "wishlistPriority", ignore = true)
     @Mapping(target = "marketPriceUsd", ignore = true)
     @Mapping(target = "marketPriceEur", ignore = true)
+    @Mapping(target = "marketPriceBrl", ignore = true)
     PokemonCardSearchResponse toSearchResponse(
             PokemonCardApiData card
     );
@@ -29,6 +30,9 @@ public interface PokemonCardMapper {
     @Mapping(target = "inWishlist", ignore = true)
     @Mapping(target = "wishlistId", ignore = true)
     @Mapping(target = "wishlistPriority", ignore = true)
+    @Mapping(target = "marketPriceUsd", ignore = true)
+    @Mapping(target = "marketPriceEur", ignore = true)
+    @Mapping(target = "marketPriceBrl", ignore = true)
     PokemonCardSearchResponse toSearchResponse(
             PokemonCardCatalogEntity card
     );

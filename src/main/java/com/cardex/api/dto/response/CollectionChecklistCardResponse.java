@@ -18,6 +18,7 @@ public record CollectionChecklistCardResponse(
         WishlistPriority wishlistPriority,
         CardCollectionSection section,
         BigDecimal marketPriceUsd,
-        BigDecimal marketPriceEur
+        BigDecimal marketPriceEur,
+        BigDecimal marketPriceBrl
 ) {
 }

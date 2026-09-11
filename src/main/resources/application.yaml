@@ -20,6 +20,10 @@ pokemon-tcg:
   base-url: https://api.pokemontcg.io/v2
   api-key: ${POKEMON_TCG_API_KEY}
 
+exchange-rate:
+  base-url: https://economia.awesomeapi.com.br
+  cache-minutes: 360
+
 cardex:
   security:
     jwt:

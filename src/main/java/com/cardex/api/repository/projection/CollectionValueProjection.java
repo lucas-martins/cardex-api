@@ -8,6 +8,8 @@ public interface CollectionValueProjection {
 
     BigDecimal getEstimatedValueEur();
 
+    BigDecimal getEstimatedValueBrl();
+
     Long getPricedCopies();
 
     Long getUnpricedCopies();

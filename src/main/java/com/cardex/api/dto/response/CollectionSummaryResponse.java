@@ -10,6 +10,7 @@ public record CollectionSummaryResponse(
         MostOwnedCardResponse mostOwnedCard,
         BigDecimal estimatedValueUsd,
         BigDecimal estimatedValueEur,
+        BigDecimal estimatedValueBrl,
         long pricedCopies,
         long unpricedCopies
 ) {

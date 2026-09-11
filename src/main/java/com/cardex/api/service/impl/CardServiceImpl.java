@@ -20,6 +20,7 @@ import com.cardex.api.repository.CardRepository;
 import com.cardex.api.repository.WishlistCardRepository;
 import com.cardex.api.service.AuthenticatedUserService;
 import com.cardex.api.service.CardService;
+import com.cardex.api.service.ExchangeRateService;
 import com.cardex.api.service.PokemonCardCatalogService;
 import com.cardex.api.service.PokemonSetCatalogService;
 import com.cardex.api.specification.CardSpecification;
@@ -59,6 +60,7 @@ public class CardServiceImpl implements CardService {
     private final PokemonCardCatalogService pokemonCardCatalogService;
     private final WishlistCardRepository wishlistCardRepository;
     private final PokemonSetCatalogService pokemonSetCatalogService;
+    private final ExchangeRateService exchangeRateService;
 
     private static final Set<String> ALLOWED_SORT_PROPERTIES = Set.of(
             "name",
@@ -404,7 +406,9 @@ public class CardServiceImpl implements CardService {
 
         CollectionValueProjection collectionValue =
                 cardRepository.sumCollectionValue(
-                        authenticatedUser
+                        authenticatedUser,
+                        exchangeRateService.getUsdToBrlRate(),
+                        exchangeRateService.getEurToBrlRate()
                 );
 
         return new CollectionSummaryResponse(
@@ -421,6 +425,11 @@ public class CardServiceImpl implements CardService {
                 zeroIfNull(
                         collectionValue != null
                                 ? collectionValue.getEstimatedValueEur()
+                                : null
+                ),
+                zeroIfNull(
+                        collectionValue != null
+                                ? collectionValue.getEstimatedValueBrl()
                                 : null
                 ),
                 collectionValue != null
@@ -591,7 +600,9 @@ public class CardServiceImpl implements CardService {
         List<CollectionValueItemResponse> collectionValues =
                 cardRepository
                         .findEstimatedValueGroupedByCollection(
-                                authenticatedUser
+                                authenticatedUser,
+                                exchangeRateService.getUsdToBrlRate(),
+                                exchangeRateService.getEurToBrlRate()
                         )
                         .stream()
                         .map(item ->
@@ -602,6 +613,9 @@ public class CardServiceImpl implements CardService {
                                         ),
                                         zeroIfNull(
                                                 item.getEstimatedValueEur()
+                                        ),
+                                        zeroIfNull(
+                                                item.getEstimatedValueBrl()
                                         )
                                 )
                         )
@@ -765,7 +779,9 @@ public class CardServiceImpl implements CardService {
         Map<String, CollectionValueByCollectionProjection> valuesByCollection =
                 cardRepository
                         .findEstimatedValueGroupedByCollection(
-                                authenticatedUser
+                                authenticatedUser,
+                                exchangeRateService.getUsdToBrlRate(),
+                                exchangeRateService.getEurToBrlRate()
                         )
                         .stream()
                         .collect(Collectors.toMap(
@@ -814,6 +830,11 @@ public class CardServiceImpl implements CardService {
                             collectionValue != null
                                     ? zeroIfNull(
                                             collectionValue.getEstimatedValueEur()
+                                    )
+                                    : BigDecimal.ZERO.setScale(2),
+                            collectionValue != null
+                                    ? zeroIfNull(
+                                            collectionValue.getEstimatedValueBrl()
                                     )
                                     : BigDecimal.ZERO.setScale(2)
                     );
@@ -1047,9 +1068,13 @@ public class CardServiceImpl implements CardService {
                 BigDecimal.ZERO.setScale(2);
         BigDecimal estimatedOwnedValueEur =
                 BigDecimal.ZERO.setScale(2);
+        BigDecimal estimatedOwnedValueBrl =
+                BigDecimal.ZERO.setScale(2);
         BigDecimal estimatedMissingValueUsd =
                 BigDecimal.ZERO.setScale(2);
         BigDecimal estimatedMissingValueEur =
+                BigDecimal.ZERO.setScale(2);
+        BigDecimal estimatedMissingValueBrl =
                 BigDecimal.ZERO.setScale(2);
 
         List<CollectionChecklistCardResponse> cards =
@@ -1064,6 +1089,12 @@ public class CardServiceImpl implements CardService {
             WishlistCardEntity wishlistCard =
                     wishlistCardsByExternalId.get(
                             catalogCard.getExternalId()
+                    );
+
+            BigDecimal marketPriceBrl =
+                    exchangeRateService.toBrl(
+                            catalogCard.getMarketPriceUsd(),
+                            catalogCard.getMarketPriceEur()
                     );
 
             if (ownedCard != null) {
@@ -1084,6 +1115,15 @@ public class CardServiceImpl implements CardService {
                                         ownedCard.getQuantity()
                                 )
                         );
+
+                estimatedOwnedValueBrl =
+                        addAmount(
+                                estimatedOwnedValueBrl,
+                                PokemonCardPriceExtractor.multiply(
+                                        marketPriceBrl,
+                                        ownedCard.getQuantity()
+                                )
+                        );
             } else {
                 estimatedMissingValueUsd =
                         addAmount(
@@ -1099,6 +1139,15 @@ public class CardServiceImpl implements CardService {
                                 estimatedMissingValueEur,
                                 PokemonCardPriceExtractor.multiply(
                                         catalogCard.getMarketPriceEur(),
+                                        1
+                                )
+                        );
+
+                estimatedMissingValueBrl =
+                        addAmount(
+                                estimatedMissingValueBrl,
+                                PokemonCardPriceExtractor.multiply(
+                                        marketPriceBrl,
                                         1
                                 )
                         );
@@ -1127,7 +1176,8 @@ public class CardServiceImpl implements CardService {
                                     printedTotal
                             ),
                             catalogCard.getMarketPriceUsd(),
-                            catalogCard.getMarketPriceEur()
+                            catalogCard.getMarketPriceEur(),
+                            marketPriceBrl
                     )
             );
         }
@@ -1180,8 +1230,10 @@ public class CardServiceImpl implements CardService {
                 additionalCards,
                 estimatedOwnedValueUsd,
                 estimatedOwnedValueEur,
+                estimatedOwnedValueBrl,
                 estimatedMissingValueUsd,
                 estimatedMissingValueEur,
+                estimatedMissingValueBrl,
                 cards
         );
     }
@@ -1389,7 +1441,8 @@ public class CardServiceImpl implements CardService {
                         catalogByExternalId.get(
                                 card.getExternalId()
                         ),
-                        card.getQuantity()
+                        card.getQuantity(),
+                        exchangeRateService::toBrl
                 )
         );
     }
@@ -1421,7 +1474,8 @@ public class CardServiceImpl implements CardService {
         return PokemonCardPriceExtractor.enrich(
                 cardMapper.toResponse(card),
                 catalog,
-                card.getQuantity()
+                card.getQuantity(),
+                exchangeRateService::toBrl
         );
     }
 
