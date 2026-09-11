@@ -9,6 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 		"spring.datasource.username=sa",
 		"spring.datasource.password=",
 		"spring.jpa.hibernate.ddl-auto=create-drop",
+		"spring.flyway.enabled=false",
 		"pokemon-tcg.base-url=http://localhost",
 		"pokemon-tcg.api-key=test-key"
 })
