@@ -27,6 +27,10 @@ public interface PokemonCardMapper {
             PokemonCardApiData card
     );
 
+    @Mapping(
+            target = "types",
+            expression = "java(com.cardex.api.pokemon.CardTypes.split(card.getTypes()))"
+    )
     @Mapping(target = "owned", ignore = true)
     @Mapping(target = "cardId", ignore = true)
     @Mapping(target = "ownedFinishes", expression = "java(java.util.List.of())")

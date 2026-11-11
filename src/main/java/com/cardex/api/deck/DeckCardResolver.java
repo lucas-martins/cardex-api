@@ -220,6 +220,7 @@ public class DeckCardResolver {
                     null,
                     line.cardNumber(),
                     null,
+                    null,
                     1,
                     20
             );

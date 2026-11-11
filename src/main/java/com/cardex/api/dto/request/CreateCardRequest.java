@@ -3,6 +3,7 @@ package com.cardex.api.dto.request;
 import com.cardex.api.enumeration.CardCondition;
 import com.cardex.api.enumeration.CardFinish;
 import com.cardex.api.enumeration.CardLanguage;
+import com.cardex.api.enumeration.CardStamp;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -29,6 +30,8 @@ public class CreateCardRequest {
     private CardCondition condition;
 
     private CardFinish finish;
+
+    private CardStamp stamp;
 
     @Size(max = 50, message = "Grading company must not exceed 50 characters")
     private String gradingCompany;

@@ -25,6 +25,7 @@ public interface PokemonCardCatalogService {
             String setId,
             String number,
             String rarity,
+            String type,
             int page,
             int size
     );

@@ -12,6 +12,7 @@ public record PokemonCardSearchResponse(
         String collectionName,
         String cardNumber,
         String rarity,
+        List<String> types,
         String imageUrl,
         boolean owned,
         Long cardId,

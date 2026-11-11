@@ -33,6 +33,8 @@ public class PokemonCardController {
 
             @RequestParam(required = false) String rarity,
 
+            @RequestParam(required = false) String type,
+
             @RequestParam(defaultValue = "1")
             @Min(value = 1, message = "Page must be at least 1")
             int page,
@@ -46,7 +48,8 @@ public class PokemonCardController {
                 (name != null && !name.isBlank())
                         || (setId != null && !setId.isBlank())
                         || (number != null && !number.isBlank())
-                        || (rarity != null && !rarity.isBlank());
+                        || (rarity != null && !rarity.isBlank())
+                        || (type != null && !type.isBlank());
 
         if (!hasFilter) {
             return ResponseEntity.badRequest().build();
@@ -58,6 +61,7 @@ public class PokemonCardController {
                         setId,
                         number,
                         rarity,
+                        type,
                         page,
                         size
                 )

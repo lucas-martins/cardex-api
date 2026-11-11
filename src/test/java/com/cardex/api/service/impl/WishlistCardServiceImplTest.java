@@ -411,6 +411,7 @@ class WishlistCardServiceImplTest {
                 "Sun & Moon",
                 "Sun & Moon",
                 "Common",
+                List.of(),
                 "image-url",
                 priority,
                 null,

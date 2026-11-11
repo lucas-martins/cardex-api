@@ -8,6 +8,7 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface WishlistCardMapper {
 
+    @Mapping(target = "types", expression = "java(java.util.List.of())")
     @Mapping(target = "marketPriceUsd", ignore = true)
     @Mapping(target = "marketPriceEur", ignore = true)
     @Mapping(target = "marketPriceBrl", ignore = true)

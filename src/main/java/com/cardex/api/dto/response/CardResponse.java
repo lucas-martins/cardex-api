@@ -3,6 +3,7 @@ package com.cardex.api.dto.response;
 import com.cardex.api.enumeration.CardCondition;
 import com.cardex.api.enumeration.CardFinish;
 import com.cardex.api.enumeration.CardLanguage;
+import com.cardex.api.enumeration.CardStamp;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -23,6 +24,7 @@ public class CardResponse {
     private CardLanguage language;
     private CardCondition condition;
     private CardFinish finish;
+    private CardStamp stamp;
     private String gradingCompany;
     private String grade;
     private String imageUrl;

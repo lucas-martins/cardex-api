@@ -103,6 +103,7 @@ class PokemonCardCatalogServiceImplTest {
                         "Caterpie",
                         "1",
                         "Common",
+                        null,
                         set,
                         new PokemonCardImagesApiData(
                                 "caterpie-small",
@@ -118,6 +119,7 @@ class PokemonCardCatalogServiceImplTest {
                         "Metapod",
                         "2",
                         "Uncommon",
+                        null,
                         set,
                         new PokemonCardImagesApiData(
                                 "metapod-small",
@@ -266,6 +268,7 @@ class PokemonCardCatalogServiceImplTest {
                         "First Card",
                         "1",
                         "Common",
+                        null,
                         set,
                         null,
                         null,
@@ -278,6 +281,7 @@ class PokemonCardCatalogServiceImplTest {
                         "Second Card",
                         "251",
                         "Rare",
+                        null,
                         set,
                         null,
                         null,
@@ -687,6 +691,7 @@ class PokemonCardCatalogServiceImplTest {
                         externalId.lastIndexOf("-") + 1
                 ),
                 "Common",
+                null,
                 set,
                 new PokemonCardImagesApiData(
                         externalId + "-small",

@@ -61,6 +61,7 @@ public class PokemonTcgClient {
             String setId,
             String number,
             String rarity,
+            String type,
             int page,
             int pageSize
     ) {
@@ -73,6 +74,7 @@ public class PokemonTcgClient {
                                 setId,
                                 number,
                                 rarity,
+                                type,
                                 page,
                                 pageSize
                         ))
@@ -100,7 +102,7 @@ public class PokemonTcgClient {
             int page,
             int pageSize
     ) {
-        return searchCards(name, null, null, null, page, pageSize);
+        return searchCards(name, null, null, null, null, page, pageSize);
     }
 
     public PokemonCardApiSingleResponse findById(String externalId) {
@@ -460,6 +462,7 @@ public class PokemonTcgClient {
             String setId,
             String number,
             String rarity,
+            String type,
             int page,
             int pageSize
     ) {
@@ -504,6 +507,13 @@ public class PokemonTcgClient {
             builder = builder.queryParam(
                     "rarity",
                     "like:" + rarity.trim()
+            );
+        }
+
+        if (type != null && !type.isBlank()) {
+            builder = builder.queryParam(
+                    "types",
+                    "eq:" + type.trim()
             );
         }
 

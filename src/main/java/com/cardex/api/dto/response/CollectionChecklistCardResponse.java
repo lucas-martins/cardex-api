@@ -12,6 +12,7 @@ public record CollectionChecklistCardResponse(
         String name,
         String cardNumber,
         String rarity,
+        List<String> types,
         String imageUrl,
         boolean owned,
         Long cardId,

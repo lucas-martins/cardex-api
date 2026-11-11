@@ -62,6 +62,9 @@ public class CardController {
             String rarity,
 
             @RequestParam(required = false)
+            String type,
+
+            @RequestParam(required = false)
             CardLanguage language,
 
             @RequestParam(required = false)
@@ -81,6 +84,7 @@ public class CardController {
                         number,
                         collection,
                         rarity,
+                        type,
                         language,
                         condition,
                         favorite,

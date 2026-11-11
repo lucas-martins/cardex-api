@@ -346,6 +346,9 @@ public class PokemonCardCatalogServiceImpl
         entity.setName(card.name());
         entity.setCardNumber(card.number());
         entity.setRarity(card.rarity());
+        entity.setTypes(
+                com.cardex.api.pokemon.CardTypes.join(card.types())
+        );
 
         if (card.set() != null) {
             entity.setCollectionId(
@@ -421,6 +424,17 @@ public class PokemonCardCatalogServiceImpl
                 continue;
             }
 
+            if (card.rarity() != null && !card.rarity().isBlank()) {
+                existingCard.setRarity(card.rarity());
+            }
+
+            String joinedTypes =
+                    com.cardex.api.pokemon.CardTypes.join(card.types());
+
+            if (joinedTypes != null) {
+                existingCard.setTypes(joinedTypes);
+            }
+
             PokemonCardPriceExtractor.applyToCatalog(
                     existingCard,
                     card
@@ -443,6 +457,7 @@ public class PokemonCardCatalogServiceImpl
             String setId,
             String number,
             String rarity,
+            String type,
             int page,
             int size
     ) {
@@ -476,6 +491,11 @@ public class PokemonCardCatalogServiceImpl
                         .and(
                                 PokemonCardCatalogSpecification.rarityContains(
                                         rarity
+                                )
+                        )
+                        .and(
+                                PokemonCardCatalogSpecification.typeContains(
+                                        type
                                 )
                         );
 

@@ -3,6 +3,7 @@ package com.cardex.api.component.cardimport;
 import com.cardex.api.dto.response.CardImportPreviewItemResponse;
 import com.cardex.api.enumeration.CardCondition;
 import com.cardex.api.enumeration.CardFinish;
+import com.cardex.api.enumeration.CardStamp;
 import com.cardex.api.enumeration.CardLanguage;
 import com.cardex.api.repository.CardRepository;
 import com.cardex.api.entity.UserEntity;
@@ -69,12 +70,13 @@ public class CardImportValidator {
 
             boolean duplicate =
                     cardRepository
-                            .findByUserAndExternalIdAndLanguageAndConditionAndFinish(
+                            .findByUserAndExternalIdAndLanguageAndConditionAndFinishAndStamp(
                                     authenticatedUser,
                                     externalId,
                                     language,
                                     condition,
-                                    CardFinish.NORMAL
+                                    CardFinish.NORMAL,
+                                    CardStamp.NONE
                             )
                             .isPresent();
 

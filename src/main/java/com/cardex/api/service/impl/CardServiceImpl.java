@@ -86,14 +86,17 @@ public class CardServiceImpl implements CardService {
                 authenticatedUserService.getAuthenticatedUser();
 
         return cardRepository
-                .findByUserAndExternalIdAndLanguageAndConditionAndFinish(
+                .findByUserAndExternalIdAndLanguageAndConditionAndFinishAndStamp(
                         authenticatedUser,
                         request.getExternalId(),
                         request.getLanguage(),
                         request.getCondition(),
                         request.getFinish() != null
                                 ? request.getFinish()
-                                : com.cardex.api.enumeration.CardFinish.NORMAL
+                                : com.cardex.api.enumeration.CardFinish.NORMAL,
+                        request.getStamp() != null
+                                ? request.getStamp()
+                                : com.cardex.api.enumeration.CardStamp.NONE
                 )
                 .map(existingCard ->
                         increaseQuantity(existingCard, request))
@@ -149,6 +152,12 @@ public class CardServiceImpl implements CardService {
         if (cardEntity.getFinish() == null) {
             cardEntity.setFinish(
                     com.cardex.api.enumeration.CardFinish.NORMAL
+            );
+        }
+
+        if (cardEntity.getStamp() == null) {
+            cardEntity.setStamp(
+                    com.cardex.api.enumeration.CardStamp.NONE
             );
         }
 
@@ -209,6 +218,7 @@ public class CardServiceImpl implements CardService {
             String number,
             String collection,
             String rarity,
+            String type,
             CardLanguage language,
             CardCondition condition,
             Boolean favorite,
@@ -252,6 +262,11 @@ public class CardServiceImpl implements CardService {
                         .and(
                                 CardSpecification.rarityContains(
                                         rarity
+                                )
+                        )
+                        .and(
+                                CardSpecification.typeContains(
+                                        type
                                 )
                         )
                         .and(
@@ -1212,6 +1227,9 @@ public class CardServiceImpl implements CardService {
                             catalogCard.getName(),
                             catalogCard.getCardNumber(),
                             catalogCard.getRarity(),
+                            com.cardex.api.pokemon.CardTypes.split(
+                                    catalogCard.getTypes()
+                            ),
                             catalogCard.getImageUrl(),
                             !ownedCopies.isEmpty(),
                             ownedCard != null
@@ -1460,6 +1478,19 @@ public class CardServiceImpl implements CardService {
                             + card.getFinish()
                             + " to "
                             + request.getFinish()
+                            + "."
+            );
+        }
+
+        if (!Objects.equals(
+                card.getStamp(),
+                request.getStamp()
+        )) {
+            changes.add(
+                    "Stamp changed from "
+                            + card.getStamp()
+                            + " to "
+                            + request.getStamp()
                             + "."
             );
         }

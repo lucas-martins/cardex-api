@@ -51,6 +51,9 @@ public class PokemonCardCatalogEntity extends BaseEntity {
     @Column(length = 100)
     private String rarity;
 
+    @Column(length = 100)
+    private String types;
+
     @Column(
             name = "collection_id",
             nullable = false,

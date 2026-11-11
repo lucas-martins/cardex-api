@@ -67,4 +67,19 @@ public final class PokemonCardCatalogSpecification {
             );
         };
     }
+
+    public static Specification<PokemonCardCatalogEntity> typeContains(
+            String type
+    ) {
+        return (root, query, builder) -> {
+            if (type == null || type.isBlank()) {
+                return builder.conjunction();
+            }
+
+            return builder.like(
+                    builder.lower(root.get("types")),
+                    "%" + type.trim().toLowerCase() + "%"
+            );
+        };
+    }
 }

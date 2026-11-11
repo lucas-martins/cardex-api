@@ -21,6 +21,7 @@ public interface CardService {
             String number,
             String collection,
             String rarity,
+            String type,
             CardLanguage language,
             CardCondition condition,
             Boolean favorite,

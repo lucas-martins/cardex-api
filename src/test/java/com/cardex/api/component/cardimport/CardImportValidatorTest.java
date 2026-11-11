@@ -6,6 +6,7 @@ import com.cardex.api.entity.UserEntity;
 import com.cardex.api.enumeration.CardCondition;
 import com.cardex.api.enumeration.CardFinish;
 import com.cardex.api.enumeration.CardLanguage;
+import com.cardex.api.enumeration.CardStamp;
 import com.cardex.api.repository.CardRepository;
 import com.cardex.api.service.AuthenticatedUserService;
 import org.apache.commons.csv.CSVFormat;
@@ -73,12 +74,13 @@ class CardImportValidatorTest {
         when(authenticatedUserService.getAuthenticatedUser())
                 .thenReturn(user);
 
-        when(cardRepository.findByUserAndExternalIdAndLanguageAndConditionAndFinish(
+        when(cardRepository.findByUserAndExternalIdAndLanguageAndConditionAndFinishAndStamp(
                 user,
                 "sm1-12",
                 CardLanguage.ENGLISH,
                 CardCondition.NEAR_MINT,
-        CardFinish.NORMAL
+                CardFinish.NORMAL,
+                CardStamp.NONE
         )).thenReturn(Optional.empty());
 
         CardImportPreviewItemResponse result =
@@ -92,12 +94,13 @@ class CardImportValidatorTest {
         verify(authenticatedUserService).getAuthenticatedUser();
 
         verify(cardRepository)
-                .findByUserAndExternalIdAndLanguageAndConditionAndFinish(
+                .findByUserAndExternalIdAndLanguageAndConditionAndFinishAndStamp(
                         user,
                         "sm1-12",
                         CardLanguage.ENGLISH,
                         CardCondition.NEAR_MINT,
-                CardFinish.NORMAL
+                        CardFinish.NORMAL,
+                        CardStamp.NONE
                 );
     }
 
@@ -131,12 +134,13 @@ class CardImportValidatorTest {
                 .getAuthenticatedUser();
 
         verify(cardRepository, never())
-                .findByUserAndExternalIdAndLanguageAndConditionAndFinish(
+                .findByUserAndExternalIdAndLanguageAndConditionAndFinishAndStamp(
                         user,
                         "",
                         CardLanguage.ENGLISH,
                         CardCondition.NEAR_MINT,
-                CardFinish.NORMAL
+                        CardFinish.NORMAL,
+                        CardStamp.NONE
                 );
     }
 
@@ -345,12 +349,13 @@ class CardImportValidatorTest {
         when(authenticatedUserService.getAuthenticatedUser())
                 .thenReturn(user);
 
-        when(cardRepository.findByUserAndExternalIdAndLanguageAndConditionAndFinish(
+        when(cardRepository.findByUserAndExternalIdAndLanguageAndConditionAndFinishAndStamp(
                 user,
                 "sm1-12",
                 CardLanguage.ENGLISH,
                 CardCondition.NEAR_MINT,
-        CardFinish.NORMAL
+                CardFinish.NORMAL,
+                CardStamp.NONE
         )).thenReturn(Optional.of(new CardEntity()));
 
         CardImportPreviewItemResponse result =
@@ -366,12 +371,13 @@ class CardImportValidatorTest {
         verify(authenticatedUserService).getAuthenticatedUser();
 
         verify(cardRepository)
-                .findByUserAndExternalIdAndLanguageAndConditionAndFinish(
+                .findByUserAndExternalIdAndLanguageAndConditionAndFinishAndStamp(
                         user,
                         "sm1-12",
                         CardLanguage.ENGLISH,
                         CardCondition.NEAR_MINT,
-                CardFinish.NORMAL
+                        CardFinish.NORMAL,
+                        CardStamp.NONE
                 );
     }
 
@@ -414,12 +420,13 @@ class CardImportValidatorTest {
         when(authenticatedUserService.getAuthenticatedUser())
                 .thenReturn(user);
 
-        when(cardRepository.findByUserAndExternalIdAndLanguageAndConditionAndFinish(
+        when(cardRepository.findByUserAndExternalIdAndLanguageAndConditionAndFinishAndStamp(
                 user,
                 "sm1-13",
                 CardLanguage.ENGLISH,
                 CardCondition.NEAR_MINT,
-        CardFinish.NORMAL
+                CardFinish.NORMAL,
+                CardStamp.NONE
         )).thenReturn(Optional.empty());
 
         CardImportPreviewItemResponse result =
@@ -430,12 +437,13 @@ class CardImportValidatorTest {
         verify(authenticatedUserService).getAuthenticatedUser();
 
         verify(cardRepository)
-                .findByUserAndExternalIdAndLanguageAndConditionAndFinish(
+                .findByUserAndExternalIdAndLanguageAndConditionAndFinishAndStamp(
                         user,
                         "sm1-13",
                         CardLanguage.ENGLISH,
                         CardCondition.NEAR_MINT,
-                CardFinish.NORMAL
+                        CardFinish.NORMAL,
+                        CardStamp.NONE
                 );
     }
 

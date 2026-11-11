@@ -51,6 +51,7 @@ public class PokemonCardServiceImpl
             String setId,
             String number,
             String rarity,
+            String type,
             int page,
             int size
     ) {
@@ -64,6 +65,7 @@ public class PokemonCardServiceImpl
                             setId,
                             number,
                             rarity,
+                            type,
                             page,
                             size
                     );
@@ -147,6 +149,7 @@ public class PokemonCardServiceImpl
                     setId,
                     number,
                     rarity,
+                    type,
                     page,
                     size,
                     authenticatedUser,
@@ -236,6 +239,7 @@ public class PokemonCardServiceImpl
             String setId,
             String number,
             String rarity,
+            String type,
             int page,
             int size,
             UserEntity authenticatedUser,
@@ -247,6 +251,7 @@ public class PokemonCardServiceImpl
                         setId,
                         number,
                         rarity,
+                        type,
                         page,
                         size
                 );
@@ -385,6 +390,7 @@ public class PokemonCardServiceImpl
                             card.collectionName(),
                             card.cardNumber(),
                             card.rarity(),
+                            card.types(),
                             card.imageUrl(),
                             !ownedCopies.isEmpty(),
                             ownedCard != null

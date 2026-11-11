@@ -1,9 +1,12 @@
 package com.cardex.api.specification;
 
 import com.cardex.api.entity.CardEntity;
+import com.cardex.api.entity.PokemonCardCatalogEntity;
 import com.cardex.api.enumeration.CardCondition;
 import com.cardex.api.enumeration.CardLanguage;
 import com.cardex.api.entity.UserEntity;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 import org.springframework.data.jpa.domain.Specification;
 
 public final class CardSpecification {
@@ -116,6 +119,38 @@ public final class CardSpecification {
                     criteriaBuilder.lower(root.get("cardNumber")),
                     "%" + number.trim().toLowerCase() + "%"
             );
+        };
+    }
+
+    public static Specification<CardEntity> typeContains(
+            String type
+    ) {
+        return (root, query, criteriaBuilder) -> {
+            if (type == null || type.isBlank()) {
+                return criteriaBuilder.conjunction();
+            }
+
+            Subquery<String> subquery = query.subquery(String.class);
+            Root<PokemonCardCatalogEntity> catalog =
+                    subquery.from(PokemonCardCatalogEntity.class);
+
+            subquery.select(catalog.get("externalId"))
+                    .where(
+                            criteriaBuilder.equal(
+                                    catalog.get("externalId"),
+                                    root.get("externalId")
+                            ),
+                            criteriaBuilder.like(
+                                    criteriaBuilder.lower(
+                                            catalog.get("types")
+                                    ),
+                                    "%"
+                                            + type.trim().toLowerCase()
+                                            + "%"
+                            )
+                    );
+
+            return criteriaBuilder.exists(subquery);
         };
     }
 }

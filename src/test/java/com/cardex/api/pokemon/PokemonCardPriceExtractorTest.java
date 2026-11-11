@@ -140,6 +140,7 @@ class PokemonCardPriceExtractorTest {
                 "Common",
                 null,
                 null,
+                null,
                 tcgplayerPrices.isEmpty()
                         ? null
                         : new PokemonTcgPlayerApiData(

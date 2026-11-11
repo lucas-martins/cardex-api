@@ -5,6 +5,7 @@ import com.cardex.api.entity.UserEntity;
 import com.cardex.api.enumeration.CardCondition;
 import com.cardex.api.enumeration.CardFinish;
 import com.cardex.api.enumeration.CardLanguage;
+import com.cardex.api.enumeration.CardStamp;
 import com.cardex.api.repository.projection.*;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -20,12 +21,13 @@ public interface CardRepository extends
         JpaRepository<CardEntity, Long>,
         JpaSpecificationExecutor<CardEntity> {
 
-    Optional<CardEntity> findByUserAndExternalIdAndLanguageAndConditionAndFinish(
+    Optional<CardEntity> findByUserAndExternalIdAndLanguageAndConditionAndFinishAndStamp(
             UserEntity user,
             String externalId,
             CardLanguage language,
             CardCondition condition,
-            CardFinish finish
+            CardFinish finish,
+            CardStamp stamp
     );
 
     @Query("""

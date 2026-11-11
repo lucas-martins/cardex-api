@@ -4,6 +4,7 @@ import com.cardex.api.enumeration.WishlistPriority;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record WishlistCardResponse(
         Long id,
@@ -14,6 +15,7 @@ public record WishlistCardResponse(
         String collectionName,
         String series,
         String rarity,
+        List<String> types,
         String imageUrl,
         WishlistPriority priority,
         String notes,

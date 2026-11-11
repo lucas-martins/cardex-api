@@ -28,6 +28,7 @@ class TcgdexCardMapperTest {
                 12,
                 "Decidueye GX",
                 "Ultra Rare",
+                java.util.List.of("Grass"),
                 "https://assets.tcgdex.net/en/sm/sm1/12",
                 new TcgdexSetBrief(
                         "sm1",
