@@ -239,6 +239,46 @@ public class GlobalExceptionHandler {
                 .body(response);
     }
 
+    @ExceptionHandler(DeckNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleDeckNotFound(
+            DeckNotFoundException exception,
+            HttpServletRequest request
+    ) {
+        HttpStatus status = HttpStatus.NOT_FOUND;
+
+        ApiErrorResponse response = new ApiErrorResponse(
+                status.value(),
+                status.getReasonPhrase(),
+                exception.getMessage(),
+                request.getRequestURI(),
+                LocalDateTime.now()
+        );
+
+        return ResponseEntity
+                .status(status)
+                .body(response);
+    }
+
+    @ExceptionHandler(DeckCardNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleDeckCardNotFound(
+            DeckCardNotFoundException exception,
+            HttpServletRequest request
+    ) {
+        HttpStatus status = HttpStatus.NOT_FOUND;
+
+        ApiErrorResponse response = new ApiErrorResponse(
+                status.value(),
+                status.getReasonPhrase(),
+                exception.getMessage(),
+                request.getRequestURI(),
+                LocalDateTime.now()
+        );
+
+        return ResponseEntity
+                .status(status)
+                .body(response);
+    }
+
     @ExceptionHandler(CollectionNotFoundException.class)
     public ResponseEntity<ApiErrorResponse> handleCollectionNotFound(
             CollectionNotFoundException exception,

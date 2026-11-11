@@ -17,6 +17,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -41,7 +44,8 @@ public class PokemonSetCatalogServiceImpl
                         .findAllByOrderByNameAsc();
 
         if (isCacheFresh(cachedSets)
-                && !hasDuplicateSetNames(cachedSets)) {
+                && !hasDuplicateSetNames(cachedSets)
+                && !hasMissingAbbreviations(cachedSets)) {
             return cachedSets;
         }
 
@@ -72,6 +76,66 @@ public class PokemonSetCatalogServiceImpl
                 .findFirst();
     }
 
+    @Override
+    @Transactional
+    public void enrichMissingAbbreviations() {
+        List<PokemonSetCatalogEntity> missingSets =
+                pokemonSetCatalogRepository
+                        .findAllByOrderByNameAsc()
+                        .stream()
+                        .filter(set ->
+                                set.getAbbreviation() == null
+                        )
+                        .toList();
+
+        if (missingSets.isEmpty()) {
+            return;
+        }
+
+        Map<String, String> abbreviationsBySetId =
+                new ConcurrentHashMap<>();
+
+        try (var executor = Executors.newFixedThreadPool(
+                Math.min(8, missingSets.size())
+        )) {
+            List<CompletableFuture<Void>> futures =
+                    missingSets.stream()
+                            .map(set ->
+                                    CompletableFuture.runAsync(
+                                            () -> {
+                                                String abbreviation =
+                                                        pokemonTcgClient
+                                                                .findSetAbbreviation(
+                                                                        set.getCollectionId()
+                                                                );
+
+                                                abbreviationsBySetId.put(
+                                                        set.getCollectionId(),
+                                                        abbreviation == null
+                                                                ? ""
+                                                                : abbreviation
+                                                );
+                                            },
+                                            executor
+                                    )
+                            )
+                            .toList();
+
+            futures.forEach(CompletableFuture::join);
+        }
+
+        for (PokemonSetCatalogEntity set : missingSets) {
+            set.setAbbreviation(
+                    abbreviationsBySetId.getOrDefault(
+                            set.getCollectionId(),
+                            ""
+                    )
+            );
+        }
+
+        pokemonSetCatalogRepository.saveAll(missingSets);
+    }
+
     private boolean isCacheFresh(
             List<PokemonSetCatalogEntity> cachedSets
     ) {
@@ -92,6 +156,20 @@ public class PokemonSetCatalogServiceImpl
                         lastSyncedAt.isAfter(minimumValidDate)
                 )
                 .orElse(false);
+    }
+
+    private boolean hasMissingAbbreviations(
+            List<PokemonSetCatalogEntity> cachedSets
+    ) {
+        if (cachedSets.isEmpty()) {
+            return false;
+        }
+
+        long missingAbbreviation = cachedSets.stream()
+                .filter(set -> set.getAbbreviation() == null)
+                .count();
+
+        return missingAbbreviation > 0;
     }
 
     private boolean hasDuplicateSetNames(
@@ -233,6 +311,13 @@ public class PokemonSetCatalogServiceImpl
         entity.setSeries(
                 set.series()
         );
+
+        if (set.abbreviation() != null
+                && !set.abbreviation().isBlank()) {
+            entity.setAbbreviation(set.abbreviation());
+        } else if (entity.getAbbreviation() == null) {
+            entity.setAbbreviation("");
+        }
 
         entity.setPrintedTotal(
                 set.printedTotal()

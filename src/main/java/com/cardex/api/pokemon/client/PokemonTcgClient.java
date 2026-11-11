@@ -24,8 +24,11 @@ import org.springframework.web.util.UriBuilder;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -204,7 +207,9 @@ public class PokemonTcgClient {
                                         setDetail.id(),
                                         setDetail.name(),
                                         setDetail.cardCount(),
-                                        setDetail.serie()
+                                        setDetail.serie(),
+                                        setDetail.abbreviation(),
+                                        setDetail.tcgOnline()
                                 ),
                         seriesName
                 );
@@ -300,14 +305,153 @@ public class PokemonTcgClient {
             }
         }
 
-        sets.sort(
+        List<PokemonSetApiData> enrichedSets =
+                enrichSetAbbreviations(sets);
+
+        enrichedSets.sort(
                 Comparator.comparing(
                         PokemonSetApiData::name,
                         String.CASE_INSENSITIVE_ORDER
                 )
         );
 
-        return new PokemonSetApiResponse(sets);
+        return new PokemonSetApiResponse(enrichedSets);
+    }
+
+    public Optional<TcgdexSetDetail> findSetDetail(String setId) {
+        if (setId == null || setId.isBlank()) {
+            return Optional.empty();
+        }
+
+        try {
+            TcgdexSetDetail detail = executeWithRetry(
+                    () -> pokemonTcgRestClient
+                            .get()
+                            .uri(uriBuilder -> uriBuilder
+                                    .path("/sets/{id}")
+                                    .build(setId)
+                            )
+                            .retrieve()
+                            .onStatus(
+                                    status -> status.value() == 404,
+                                    (request, response) -> {
+                                        throw new PokemonCardNotFoundException(
+                                                setId
+                                        );
+                                    }
+                            )
+                            .onStatus(
+                                    HttpStatusCode::is5xxServerError,
+                                    (request, response) -> {
+                                        throw new PokemonTcgApiUnavailableException();
+                                    }
+                            )
+                            .body(TcgdexSetDetail.class)
+            );
+
+            return Optional.ofNullable(detail);
+        } catch (PokemonCardNotFoundException exception) {
+            return Optional.empty();
+        }
+    }
+
+    public String findSetAbbreviation(String setId) {
+        return findSetDetail(setId)
+                .map(this::extractAbbreviation)
+                .orElse(null);
+    }
+
+    private List<PokemonSetApiData> enrichSetAbbreviations(
+            List<PokemonSetApiData> sets
+    ) {
+        if (sets == null || sets.isEmpty()) {
+            return List.of();
+        }
+
+        List<PokemonSetApiData> needingEnrichment = sets.stream()
+                .filter(set ->
+                        set.abbreviation() == null
+                                || set.abbreviation().isBlank()
+                )
+                .toList();
+
+        if (needingEnrichment.isEmpty()) {
+            return sets;
+        }
+
+        Map<String, String> abbreviationsBySetId = new HashMap<>();
+
+        try (ExecutorService executor =
+                     Executors.newFixedThreadPool(
+                             Math.min(
+                                     HYDRATION_PARALLELISM,
+                                     needingEnrichment.size()
+                             )
+                     )) {
+            List<CompletableFuture<Void>> futures =
+                    needingEnrichment.stream()
+                            .map(set -> CompletableFuture.runAsync(
+                                    () -> {
+                                        String abbreviation =
+                                                findSetAbbreviation(set.id());
+
+                                        synchronized (abbreviationsBySetId) {
+                                            abbreviationsBySetId.put(
+                                                    set.id(),
+                                                    abbreviation == null
+                                                            ? ""
+                                                            : abbreviation
+                                            );
+                                        }
+                                    },
+                                    executor
+                            ))
+                            .toList();
+
+            futures.forEach(CompletableFuture::join);
+        }
+
+        return sets.stream()
+                .map(set -> {
+                    if (set.abbreviation() != null
+                            && !set.abbreviation().isBlank()) {
+                        return set;
+                    }
+
+                    String abbreviation =
+                            abbreviationsBySetId.getOrDefault(
+                                    set.id(),
+                                    ""
+                            );
+
+                    return new PokemonSetApiData(
+                            set.id(),
+                            set.name(),
+                            set.series(),
+                            set.printedTotal(),
+                            set.total(),
+                            abbreviation
+                    );
+                })
+                .toList();
+    }
+
+    private String extractAbbreviation(TcgdexSetDetail detail) {
+        if (detail == null) {
+            return null;
+        }
+
+        if (detail.abbreviation() != null
+                && detail.abbreviation().official() != null
+                && !detail.abbreviation().official().isBlank()) {
+            return detail.abbreviation().official().trim().toUpperCase();
+        }
+
+        if (detail.tcgOnline() != null && !detail.tcgOnline().isBlank()) {
+            return detail.tcgOnline().trim().toUpperCase();
+        }
+
+        return null;
     }
 
     private java.net.URI buildCardSearchUri(

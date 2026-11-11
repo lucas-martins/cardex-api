@@ -5,6 +5,16 @@ public record PokemonSetApiData(
         String name,
         String series,
         Integer printedTotal,
-        Integer total
+        Integer total,
+        String abbreviation
 ) {
+    public PokemonSetApiData(
+            String id,
+            String name,
+            String series,
+            Integer printedTotal,
+            Integer total
+    ) {
+        this(id, name, series, printedTotal, total, null);
+    }
 }

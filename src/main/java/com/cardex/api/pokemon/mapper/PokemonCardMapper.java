@@ -15,6 +15,8 @@ public interface PokemonCardMapper {
     @Mapping(target = "imageUrl", source = "images.large")
     @Mapping(target = "owned", ignore = true)
     @Mapping(target = "cardId", ignore = true)
+    @Mapping(target = "ownedFinishes", expression = "java(java.util.List.of())")
+    @Mapping(target = "ownedQuantity", constant = "0")
     @Mapping(target = "inWishlist", ignore = true)
     @Mapping(target = "wishlistId", ignore = true)
     @Mapping(target = "wishlistPriority", ignore = true)
@@ -27,6 +29,8 @@ public interface PokemonCardMapper {
 
     @Mapping(target = "owned", ignore = true)
     @Mapping(target = "cardId", ignore = true)
+    @Mapping(target = "ownedFinishes", expression = "java(java.util.List.of())")
+    @Mapping(target = "ownedQuantity", constant = "0")
     @Mapping(target = "inWishlist", ignore = true)
     @Mapping(target = "wishlistId", ignore = true)
     @Mapping(target = "wishlistPriority", ignore = true)

@@ -8,6 +8,7 @@ import com.cardex.api.dto.response.*;
 import com.cardex.api.entity.*;
 import com.cardex.api.enumeration.CardCollectionSection;
 import com.cardex.api.enumeration.CardCondition;
+import com.cardex.api.enumeration.CardFinish;
 import com.cardex.api.enumeration.CardHistoryAction;
 import com.cardex.api.enumeration.CardLanguage;
 import com.cardex.api.exception.CardNotFoundException;
@@ -39,6 +40,7 @@ import com.cardex.api.repository.projection.CollectionValueProjection;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -1012,14 +1014,12 @@ public class CardServiceImpl implements CardService {
                                 collectionId
                         );
 
-        Map<String, CardEntity> ownedCardsByExternalId =
+        Map<String, List<CardEntity>> ownedCardsByExternalId =
                 ownedCards
                         .stream()
                         .collect(
-                                Collectors.toMap(
-                                        CardEntity::getExternalId,
-                                        card -> card,
-                                        (first, second) -> first
+                                Collectors.groupingBy(
+                                        CardEntity::getExternalId
                                 )
                         );
 
@@ -1105,10 +1105,39 @@ public class CardServiceImpl implements CardService {
                 new ArrayList<>();
 
         for (PokemonCardCatalogEntity catalogCard : collectionCards) {
-            CardEntity ownedCard =
-                    ownedCardsByExternalId.get(
-                            catalogCard.getExternalId()
+            List<CardEntity> ownedCopies =
+                    ownedCardsByExternalId.getOrDefault(
+                            catalogCard.getExternalId(),
+                            List.of()
                     );
+
+            CardEntity ownedCard = ownedCopies.isEmpty()
+                    ? null
+                    : ownedCopies.getFirst();
+
+            List<CardFinish> ownedFinishes =
+                    ownedCopies.stream()
+                            .map(owned ->
+                                    owned.getFinish() == null
+                                            ? CardFinish.NORMAL
+                                            : owned.getFinish()
+                            )
+                            .collect(
+                                    Collectors.collectingAndThen(
+                                            Collectors.toCollection(
+                                                    LinkedHashSet::new
+                                            ),
+                                            ArrayList::new
+                                    )
+                            );
+
+            int ownedQuantity = ownedCopies.stream()
+                    .mapToInt(owned ->
+                            owned.getQuantity() == null
+                                    ? 0
+                                    : owned.getQuantity()
+                    )
+                    .sum();
 
             WishlistCardEntity wishlistCard =
                     wishlistCardsByExternalId.get(
@@ -1121,13 +1150,13 @@ public class CardServiceImpl implements CardService {
                             catalogCard.getMarketPriceEur()
                     );
 
-            if (ownedCard != null) {
+            if (!ownedCopies.isEmpty()) {
                 estimatedOwnedValueUsd =
                         addAmount(
                                 estimatedOwnedValueUsd,
                                 PokemonCardPriceExtractor.multiply(
                                         catalogCard.getMarketPriceUsd(),
-                                        ownedCard.getQuantity()
+                                        ownedQuantity
                                 )
                         );
 
@@ -1136,7 +1165,7 @@ public class CardServiceImpl implements CardService {
                                 estimatedOwnedValueEur,
                                 PokemonCardPriceExtractor.multiply(
                                         catalogCard.getMarketPriceEur(),
-                                        ownedCard.getQuantity()
+                                        ownedQuantity
                                 )
                         );
 
@@ -1145,7 +1174,7 @@ public class CardServiceImpl implements CardService {
                                 estimatedOwnedValueBrl,
                                 PokemonCardPriceExtractor.multiply(
                                         marketPriceBrl,
-                                        ownedCard.getQuantity()
+                                        ownedQuantity
                                 )
                         );
             } else {
@@ -1184,10 +1213,12 @@ public class CardServiceImpl implements CardService {
                             catalogCard.getCardNumber(),
                             catalogCard.getRarity(),
                             catalogCard.getImageUrl(),
-                            ownedCard != null,
+                            !ownedCopies.isEmpty(),
                             ownedCard != null
                                     ? ownedCard.getId()
                                     : null,
+                            ownedFinishes,
+                            ownedQuantity,
                             wishlistCard != null,
                             wishlistCard != null
                                     ? wishlistCard.getId()

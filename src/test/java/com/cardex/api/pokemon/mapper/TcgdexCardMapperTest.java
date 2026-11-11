@@ -33,7 +33,11 @@ class TcgdexCardMapperTest {
                         "sm1",
                         "Sun & Moon",
                         new TcgdexCardCount(149, 172),
-                        new TcgdexSerieBrief("sm", "Sun & Moon")
+                        new TcgdexSerieBrief("sm", "Sun & Moon"),
+                        new com.cardex.api.pokemon.dto.tcgdex.TcgdexSetAbbreviation(
+                                "SUM"
+                        ),
+                        "SUM"
                 ),
                 new TcgdexPricing(
                         new TcgdexTcgPlayerPricing(

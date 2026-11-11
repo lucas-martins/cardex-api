@@ -4,6 +4,8 @@ public record TcgdexSetBrief(
         String id,
         String name,
         TcgdexCardCount cardCount,
-        TcgdexSerieBrief serie
+        TcgdexSerieBrief serie,
+        TcgdexSetAbbreviation abbreviation,
+        String tcgOnline
 ) {
 }

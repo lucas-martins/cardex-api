@@ -46,6 +46,11 @@ public class PokemonSetCatalogEntity extends BaseEntity {
     private String series;
 
     @Column(
+            length = 20
+    )
+    private String abbreviation;
+
+    @Column(
             name = "printed_total"
     )
     private Integer printedTotal;

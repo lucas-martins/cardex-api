@@ -18,4 +18,9 @@ public interface PokemonSetCatalogRepository
     findByCollectionId(
             String collectionId
     );
+
+    Optional<PokemonSetCatalogEntity>
+    findFirstByAbbreviationIgnoreCase(
+            String abbreviation
+    );
 }

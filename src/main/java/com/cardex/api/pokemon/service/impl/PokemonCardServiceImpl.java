@@ -1,6 +1,7 @@
 package com.cardex.api.pokemon.service.impl;
 
 import com.cardex.api.entity.*;
+import com.cardex.api.enumeration.CardFinish;
 import com.cardex.api.exception.PokemonTcgApiUnavailableException;
 import com.cardex.api.pokemon.PokemonCardPriceExtractor;
 import com.cardex.api.pokemon.client.PokemonTcgClient;
@@ -23,6 +24,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -306,7 +309,7 @@ public class PokemonCardServiceImpl
                         .distinct()
                         .toList();
 
-        Map<String, CardEntity> ownedCardsByExternalId =
+        Map<String, List<CardEntity>> ownedCardsByExternalId =
                 cardRepository
                         .findByUserAndExternalIdIn(
                                 authenticatedUser,
@@ -314,10 +317,8 @@ public class PokemonCardServiceImpl
                         )
                         .stream()
                         .collect(
-                                Collectors.toMap(
-                                        CardEntity::getExternalId,
-                                        Function.identity(),
-                                        (first, second) -> first
+                                Collectors.groupingBy(
+                                        CardEntity::getExternalId
                                 )
                         );
 
@@ -339,10 +340,39 @@ public class PokemonCardServiceImpl
         return cards
                 .stream()
                 .map(card -> {
-                    CardEntity ownedCard =
-                            ownedCardsByExternalId.get(
-                                    card.externalId()
+                    List<CardEntity> ownedCopies =
+                            ownedCardsByExternalId.getOrDefault(
+                                    card.externalId(),
+                                    List.of()
                             );
+
+                    CardEntity ownedCard = ownedCopies.isEmpty()
+                            ? null
+                            : ownedCopies.getFirst();
+
+                    List<CardFinish> ownedFinishes =
+                            ownedCopies.stream()
+                                    .map(owned ->
+                                            owned.getFinish() == null
+                                                    ? CardFinish.NORMAL
+                                                    : owned.getFinish()
+                                    )
+                                    .collect(
+                                            Collectors.collectingAndThen(
+                                                    Collectors.toCollection(
+                                                            LinkedHashSet::new
+                                                    ),
+                                                    ArrayList::new
+                                            )
+                                    );
+
+                    int ownedQuantity = ownedCopies.stream()
+                            .mapToInt(owned ->
+                                    owned.getQuantity() == null
+                                            ? 0
+                                            : owned.getQuantity()
+                            )
+                            .sum();
 
                     WishlistCardEntity wishlistCard =
                             wishlistCardsByExternalId.get(
@@ -356,10 +386,12 @@ public class PokemonCardServiceImpl
                             card.cardNumber(),
                             card.rarity(),
                             card.imageUrl(),
-                            ownedCard != null,
+                            !ownedCopies.isEmpty(),
                             ownedCard != null
                                     ? ownedCard.getId()
                                     : null,
+                            ownedFinishes,
+                            ownedQuantity,
                             wishlistCard != null,
                             wishlistCard != null
                                     ? wishlistCard.getId()

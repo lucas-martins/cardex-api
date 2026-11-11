@@ -475,6 +475,10 @@ class PokemonSetCatalogServiceImplTest {
                 series
         );
 
+        entity.setAbbreviation(
+                collectionId.toUpperCase()
+        );
+
         entity.setPrintedTotal(
                 printedTotal
         );

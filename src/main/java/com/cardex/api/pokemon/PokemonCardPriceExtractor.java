@@ -199,6 +199,8 @@ public final class PokemonCardPriceExtractor {
                 response.imageUrl(),
                 response.owned(),
                 response.cardId(),
+                response.ownedFinishes(),
+                response.ownedQuantity(),
                 response.inWishlist(),
                 response.wishlistId(),
                 response.wishlistPriority(),

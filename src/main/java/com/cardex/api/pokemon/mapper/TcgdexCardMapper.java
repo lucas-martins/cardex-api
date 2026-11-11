@@ -84,7 +84,8 @@ public class TcgdexCardMapper {
                 set.name(),
                 serie != null ? serie.name() : null,
                 cardCount != null ? cardCount.official() : null,
-                cardCount != null ? cardCount.total() : null
+                cardCount != null ? cardCount.total() : null,
+                resolveAbbreviation(set)
         );
     }
 
@@ -103,8 +104,23 @@ public class TcgdexCardMapper {
                 set.name(),
                 seriesName,
                 cardCount != null ? cardCount.official() : null,
-                cardCount != null ? cardCount.total() : null
+                cardCount != null ? cardCount.total() : null,
+                resolveAbbreviation(set)
         );
+    }
+
+    private String resolveAbbreviation(TcgdexSetBrief set) {
+        if (set.abbreviation() != null
+                && set.abbreviation().official() != null
+                && !set.abbreviation().official().isBlank()) {
+            return set.abbreviation().official().trim().toUpperCase();
+        }
+
+        if (set.tcgOnline() != null && !set.tcgOnline().isBlank()) {
+            return set.tcgOnline().trim().toUpperCase();
+        }
+
+        return null;
     }
 
     private PokemonCardImagesApiData toImages(String imageBaseUrl) {

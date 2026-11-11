@@ -7,6 +7,8 @@ public record TcgdexSetDetail(
         String name,
         TcgdexCardCount cardCount,
         TcgdexSerieBrief serie,
-        List<TcgdexCardBrief> cards
+        List<TcgdexCardBrief> cards,
+        TcgdexSetAbbreviation abbreviation,
+        String tcgOnline
 ) {
 }

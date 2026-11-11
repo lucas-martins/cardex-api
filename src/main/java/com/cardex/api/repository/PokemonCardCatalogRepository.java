@@ -33,4 +33,15 @@ public interface PokemonCardCatalogRepository
             String name,
             Pageable pageable
     );
+
+    Optional<PokemonCardCatalogEntity>
+    findFirstByCollectionIdAndCardNumberIgnoreCase(
+            String collectionId,
+            String cardNumber
+    );
+
+    List<PokemonCardCatalogEntity>
+    findByNameIgnoreCase(
+            String name
+    );
 }

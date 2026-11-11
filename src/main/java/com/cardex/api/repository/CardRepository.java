@@ -169,6 +169,19 @@ public interface CardRepository extends
     );
 
     @Query("""
+        select card.externalId as externalId,
+               coalesce(sum(card.quantity), 0) as quantity
+        from CardEntity card
+        where card.user = :user
+          and card.externalId in :externalIds
+        group by card.externalId
+        """)
+    List<ExternalIdQuantityProjection> sumQuantityByUserAndExternalIdIn(
+            UserEntity user,
+            List<String> externalIds
+    );
+
+    @Query("""
     select coalesce(sum(card.quantity), 0)
     from CardEntity card
     where card.user = :user
