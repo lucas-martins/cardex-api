@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -39,7 +40,8 @@ public class PokemonSetCatalogServiceImpl
                 pokemonSetCatalogRepository
                         .findAllByOrderByNameAsc();
 
-        if (isCacheFresh(cachedSets)) {
+        if (isCacheFresh(cachedSets)
+                && !hasDuplicateSetNames(cachedSets)) {
             return cachedSets;
         }
 
@@ -83,13 +85,43 @@ public class PokemonSetCatalogServiceImpl
 
         return cachedSets
                 .stream()
-                .allMatch(set ->
-                        set.getLastSyncedAt() != null
-                                && set.getLastSyncedAt()
-                                .isAfter(
-                                        minimumValidDate
-                                )
-                );
+                .map(PokemonSetCatalogEntity::getLastSyncedAt)
+                .filter(lastSyncedAt -> lastSyncedAt != null)
+                .max(LocalDateTime::compareTo)
+                .map(lastSyncedAt ->
+                        lastSyncedAt.isAfter(minimumValidDate)
+                )
+                .orElse(false);
+    }
+
+    private boolean hasDuplicateSetNames(
+            List<PokemonSetCatalogEntity> cachedSets
+    ) {
+        return cachedSets
+                .stream()
+                .collect(
+                        Collectors.groupingBy(
+                                this::setIdentityKey,
+                                Collectors.counting()
+                        )
+                )
+                .values()
+                .stream()
+                .anyMatch(count -> count > 1);
+    }
+
+    private String setIdentityKey(
+            PokemonSetCatalogEntity set
+    ) {
+        String name = set.getName() == null
+                ? ""
+                : set.getName().trim().toLowerCase();
+
+        String series = set.getSeries() == null
+                ? ""
+                : set.getSeries().trim().toLowerCase();
+
+        return name + "|" + series;
     }
 
     private List<PokemonSetCatalogEntity> refreshCache(
@@ -123,9 +155,11 @@ public class PokemonSetCatalogServiceImpl
         LocalDateTime syncedAt =
                 LocalDateTime.now();
 
+        List<PokemonSetApiData> apiSets =
+                apiResponse.data();
+
         List<PokemonSetCatalogEntity> sets =
-                apiResponse
-                        .data()
+                apiSets
                         .stream()
                         .map(set ->
                                 toEntity(
@@ -138,6 +172,30 @@ public class PokemonSetCatalogServiceImpl
 
         pokemonSetCatalogRepository
                 .saveAll(sets);
+
+        Set<String> apiCollectionIds =
+                apiSets
+                        .stream()
+                        .map(PokemonSetApiData::id)
+                        .filter(id -> id != null && !id.isBlank())
+                        .collect(Collectors.toSet());
+
+        List<PokemonSetCatalogEntity> orphanSets =
+                cachedSets
+                        .stream()
+                        .filter(cachedSet ->
+                                cachedSet.getCollectionId() != null
+                                        && !apiCollectionIds.contains(
+                                        cachedSet.getCollectionId()
+                                )
+                        )
+                        .toList();
+
+        if (!orphanSets.isEmpty()) {
+            pokemonSetCatalogRepository.deleteAll(
+                    orphanSets
+            );
+        }
 
         return sets
                 .stream()

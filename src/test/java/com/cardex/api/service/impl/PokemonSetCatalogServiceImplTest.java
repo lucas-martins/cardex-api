@@ -72,6 +72,117 @@ class PokemonSetCatalogServiceImplTest {
     }
 
     @Test
+    void shouldUseCacheWhenMostRecentSyncIsFreshEvenIfOlderSetsExist() {
+        PokemonSetCatalogEntity oldSet =
+                createCachedSet(
+                        "legacy1",
+                        "Legacy Set",
+                        "Legacy",
+                        50,
+                        50,
+                        LocalDateTime.now()
+                                .minusDays(60)
+                );
+
+        PokemonSetCatalogEntity recentSet =
+                createCachedSet(
+                        "base1",
+                        "Base",
+                        "Base",
+                        102,
+                        102,
+                        LocalDateTime.now()
+                                .minusHours(1)
+                );
+
+        when(pokemonSetCatalogRepository
+                .findAllByOrderByNameAsc())
+                .thenReturn(
+                        List.of(oldSet, recentSet)
+                );
+
+        List<PokemonSetCatalogEntity> result =
+                pokemonSetCatalogService.findAll();
+
+        assertEquals(2, result.size());
+
+        verifyNoInteractions(pokemonTcgClient);
+
+        verify(
+                pokemonSetCatalogRepository,
+                never()
+        ).saveAll(anyList());
+    }
+
+    @Test
+    void shouldRefreshAndRemoveDuplicateLegacySets() {
+        PokemonSetCatalogEntity legacyDuplicate =
+                createCachedSet(
+                        "sv3pt5",
+                        "151",
+                        "Scarlet & Violet",
+                        165,
+                        207,
+                        LocalDateTime.now()
+                                .minusDays(60)
+                );
+
+        PokemonSetCatalogEntity currentSet =
+                createCachedSet(
+                        "sv03.5",
+                        "151",
+                        "Scarlet & Violet",
+                        165,
+                        207,
+                        LocalDateTime.now()
+                                .minusHours(1)
+                );
+
+        PokemonSetApiData apiSet =
+                new PokemonSetApiData(
+                        "sv03.5",
+                        "151",
+                        "Scarlet & Violet",
+                        165,
+                        207
+                );
+
+        when(pokemonSetCatalogRepository
+                .findAllByOrderByNameAsc())
+                .thenReturn(
+                        List.of(
+                                legacyDuplicate,
+                                currentSet
+                        )
+                );
+
+        when(pokemonTcgClient.findSets())
+                .thenReturn(
+                        new PokemonSetApiResponse(
+                                List.of(apiSet)
+                        )
+                );
+
+        when(pokemonSetCatalogRepository
+                .saveAll(anyList()))
+                .thenAnswer(
+                        invocation ->
+                                invocation.getArgument(0)
+                );
+
+        List<PokemonSetCatalogEntity> result =
+                pokemonSetCatalogService.findAll();
+
+        assertEquals(1, result.size());
+        assertEquals("sv03.5", result.get(0).getCollectionId());
+
+        verify(pokemonTcgClient).findSets();
+        verify(pokemonSetCatalogRepository).saveAll(anyList());
+        verify(pokemonSetCatalogRepository)
+                .deleteAll(List.of(legacyDuplicate));
+    }
+
+    @Test
     void shouldLoadAndSaveSetsWhenCacheIsEmpty() {
         PokemonSetApiData base =
                 new PokemonSetApiData(
